@@ -463,4 +463,76 @@ async def is_favorite(song_id: int):
 async def get_num_songs():
     return JSONResponse({"num_songs": db.get_num_entries()})
 
+#TODO these need to be optimized
+#currently they take approx 300ms to complete
+#this is because they need to go through all songs
+#and get the unique values for the column
+
+#possible fixes:
+#creata a new table and store all unique values there
+#and calculate it at the same time we scrape the songs
+#this would make the scraping take longer a little longer but not much
+#and the api calls would be much faster
+
+@app.get("/api/get_options")
+async def get_options_for_columns(column_name: str):
+    #return a set of all values for a column
+    #except for id, abs_path, name and album_art
+    if column_name in ["id", "abs_path", "name", "album_art"]:
+        return JSONResponse({"options": []})
+    
+    #other colums:
+    #bpm, length, kbps, genre, artist, album
+    
+    options = set()
+    songs = db.get_all_songs()
+    
+    for song in songs:
+        options.add(song.__dict__[column_name])
+    
+    return JSONResponse({"options": list(options)})
+
+@app.get("/api/get_options_new")
+async def get_options_for_columns_new(column_name: str):
+    #return a set of all values for a column
+    #except for id, abs_path, name and album_art
+    if column_name in ["id", "abs_path", "name", "album_art"]:
+        return JSONResponse({"options": []})
+    
+    #other colums:
+    #bpm, length, kbps, genre, artist, album
+    
+    options = set()
+    
+    max_id = db.get_num_entries()
+    
+    for i in range(0, max_id, 100):
+        songs = db.get_songs_by_id(i, 100, i+100)
+        for song in songs:
+            options.add(song.__dict__[column_name])
+    
+    return JSONResponse({"options": list(options)})
+
+@app.get("/api/get_option_frequency")
+async def get_option_frequency(column_name: str):
+    #return a dict of all values for a column and their frequency
+    #except for id, abs_path, name and album_art
+    if column_name in ["id", "abs_path", "name", "album_art"]:
+        return JSONResponse({"options": []})
+    
+    #other colums:
+    #bpm, length, kbps, genre, artist, album
+    
+    options = {} #option: count
+    songs = db.get_all_songs()
+    
+    for song in songs:
+        value = song.__dict__[column_name]
+        if value not in options:
+            options[value] = 0
+        options[value] += 1
+    
+    return JSONResponse(options)
+
+
 uvicorn.run(app, host="127.0.0.1", port=80)
