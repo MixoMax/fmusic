@@ -102,6 +102,15 @@ class DataBase:
         );
         """
         self.cursor.execute(cmd)
+        
+        cmd = """
+        CREATE TABLE IF NOT EXISTS favorites (
+            id INTEGER PRIMARY KEY,
+            song_id INTEGER UNIQUE NOT NULL
+            );
+        """
+        self.cursor.execute(cmd)
+        
         self.conn.commit()
         
     
@@ -146,10 +155,7 @@ class DataBase:
             
             
         
-        return list(set(songs_out))[:limit]
-        
-                        
-                
+        return list(set(songs_out))[:limit]      
     
     def get_song_by_id(self, song_id: int) -> SongEntry:
         cmd = F"SELECT * FROM songs WHERE id={song_id}"
@@ -248,6 +254,7 @@ class DataBase:
         self.conn.commit()
     
     
+    
     def get_playlist(self, playlist_id: int) -> PlaylistEntry:
         cmd = F"SELECT * FROM playlists WHERE id={playlist_id}"
         self.cursor.execute(cmd)
@@ -287,6 +294,37 @@ class DataBase:
         self.cursor.execute(cmd, (playlist.name, playlist.playlist_art, song_ids))
         self.conn.commit()
 
+
+
+    def add_to_favorite(self, song_id: int) -> None:
+        cmd = "INSERT INTO favorites VALUES (?, ?)"
+        self.cursor.execute(cmd, (None, song_id))
+        self.conn.commit()
+    
+    def remove_from_favorite(self, song_id: int) -> None:
+        cmd = F"DELETE FROM favorites WHERE song_id={song_id}"
+        self.cursor.execute(cmd)
+        self.conn.commit()
+    
+    def get_favorites(self) -> list[SongEntry]:
+        cmd = "SELECT * FROM favorites"
+        self.cursor.execute(cmd)
+        favorites = [self.get_song_by_id(song_id) for _, song_id in self.cursor.fetchall()]
+        return favorites
+    
+    def get_favorite_playlist(self) -> PlaylistEntry:
+        favorites = self.get_favorites()
+        return PlaylistEntry(0, "Favorites", None, favorites)
+    
+    def is_favorite(self, song_id: int) -> bool:
+        cmd = "SELECT * FROM favorites WHERE song_id=(?)"
+        self.cursor.execute(cmd, (song_id,))
+        return len(self.cursor.fetchall()) > 0
+    
+    
+    
+    
+        
 
 
 db = DataBase()
@@ -329,28 +367,20 @@ async def song_player(song_id: int):
 
 @app.get("/playlist/{playlist_id}")
 async def playlist_player(playlist_id: int):
-    playlist = db.get_playlist(playlist_id)
-    html = f"""
-    <html>
-        <head>
-            <link rel="stylesheet" href="/static/playlist.css">
-            <title>{playlist.name}</title>
-        </head>
-        
-        <body>
-            <h1 id = "PlaylistName">
-            {playlist.name}
-            </h1>
-            
-            <img src="/api/playlist/{playlist_id}/art" alt="playlist art" id = "PlaylistArt">
-            
-            <ul id = "SongList">
-                {''.join([f"<li><a href='/song/{song.id}'>{song.name} by {song.artist}</a></li>" for song in playlist.songs])}
-            </ul>
-            
-        </body>
-    </html>
-    """
+    if playlist_id == 0:
+        #playlist_id 0 is reserved for favorites
+        playlist = db.get_favorite_playlist()
+    else:
+        playlist = db.get_playlist(playlist_id)
+
+    with open("./static/playlist_player.html", "r") as f:
+        html = f.read()
+    
+    html = html.replace(
+        '"playlist_data_placeholder"',
+        str(playlist.to_json())
+    )
+    
     return HTMLResponse(html)
 
 
@@ -371,6 +401,8 @@ async def search(request: Request):
     songs = db.get_songs(**params)
     return JSONResponse([song.to_json() for song in songs])
 
+## Songs
+
 @app.get("/api/song/{song_id}")
 async def get_song(song_id: int):
     song = db.get_song_by_id(song_id)
@@ -386,6 +418,8 @@ async def get_song_art(song_id: int):
     song = db.get_song_by_id(song_id)
     return FileResponse(song.album_art)
 
+## Playlists
+
 @app.get("/api/playlist/{playlist_id}")
 async def get_playlist(playlist_id: int):
     playlist = db.get_playlist(playlist_id)
@@ -400,6 +434,30 @@ async def get_playlist_art(playlist_id: int):
 async def get_playlist_songs(playlist_id: int):
     playlist = db.get_playlist(playlist_id)
     return JSONResponse([song.to_json() for song in playlist.songs])
+
+## favorites
+
+@app.get("/api/favorites")
+async def get_favorites():
+    favorites = db.get_favorites()
+    return JSONResponse([song.to_json() for song in favorites])
+
+@app.get("/api/favorites/add/{song_id}")
+async def add_to_favorites(song_id: int):
+    db.add_to_favorite(song_id)
+    return JSONResponse({"success": True})
+
+@app.get("/api/favorites/remove/{song_id}")
+async def remove_from_favorites(song_id: int):
+    db.remove_from_favorite(song_id)
+    return JSONResponse({"success": True})
+
+@app.get("/api/favorites/is_favorite/{song_id}")
+async def is_favorite(song_id: int):
+    return JSONResponse({"is_favorite": db.is_favorite(song_id)})
+
+
+## general
 
 @app.get("/api/get_num_songs")
 async def get_num_songs():

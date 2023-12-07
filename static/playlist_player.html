@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div id = "PlayListTitle">PlayListTitle</div>
+
+    <ul id = "PlayList">
+    
+    </ul>
+
+
+    <script>
+
+        const playlist_data = "playlist_data_placeholder"
+        //will be injected
+        /*{"id": self.id, "name": self.title, "songs": [{
+        "id": self.id,
+        "name": self.name,
+        "abs_path": self.abs_path,
+        "bpm": self.bpm,
+        "length": self.length,
+        "kbps": self.kbps,
+        "genre": self.genre,
+        "artist": self.artist,
+        "album": self.album
+        } ... ]}
+        */
+
+        console.log(playlist_data)
+
+        const playlist_title = playlist_data.name
+        const playlist_songs = playlist_data.songs
+
+        function onload() {
+            let playlist_title = playlist_data.name
+            console.log(playlist_title)
+            document.getElementById("PlayListTitle").innerHTML = playlist_title
+
+            append_songs()
+        }
+
+        function append_songs() {
+
+            for (let i = 0; i < playlist_songs.length; i++) {
+                const song = playlist_songs[i];
+                song_id = song.id
+                const song_name = song.name
+                const song_abs_path = song.abs_path
+                const song_bpm = song.bpm
+                const song_length = song.length
+                const song_kbps = song.kbps
+                const song_genre = song.genre
+                const song_artist = song.artist
+                const song_album = song.album
+
+                //console.log(song_name)
+
+                let url = "/api/song/" + song_id;
+                const song_html = "<li>" + song_name + "<audio controls><source src='" + url + "' type='audio/mpeg', loading='lazy'></audio></li>"
+                document.getElementById("PlayList").innerHTML += song_html
+            }
+
+        }
+
+        //call onload after DOM is loaded
+        document.addEventListener("DOMContentLoaded", function(event) { 
+            onload()
+        });
+
+    </script>
+
+</body>
+</html>

@@ -22,7 +22,7 @@
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             width: 800px;
-            height: 250px;
+            height: 275px;
         }
 
         #song-title {
@@ -42,12 +42,25 @@
             transition: background-color 0.3s ease;
         }
 
-        button:hover {
-            background-color: #2980b9;
-        }
 
         #play-pause-button {
             width: 75px;
+        }
+
+        #favorite_button {
+            background-color: #676767;
+
+            height: 45px;
+
+            /*put it next to the song title*/
+            position: relative;
+            display: inline;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100%);
+        }
+
+        button:hover {
+            background-color: #2980b9;
         }
 
 
@@ -79,6 +92,7 @@
             background-color: #e0e0e0;
             border-radius: 5px;
             margin: 20px 0;
+            margin-top: 0px;
         }
 
         #spectogram {
@@ -91,8 +105,11 @@
 <body>
     <div id="player-container">
         <div id="song-title">Song Title Placeholder</div>
+        <button id = "favorite_button", onclick="toggle_favorite()"> &#x2665;</button>
 
+        
         <div id = "spectogram-container">
+            <!-- TODO: add spectrum-->
             <canvas id = "spectogram"></canvas>
         </div>
 
@@ -137,11 +154,24 @@
        //prefetch the entire song
         audio.preload = "auto";
 
-        let shuffle = true;
+        let shuffle = get_shuffle();
+
+        let is_favorite = false;
         
         function onload() {
             console.log("onload");
             console.log(song_data);
+
+            update_favorite_button();
+            update_shuffle_button();
+
+            //set <title> to song name
+            //title = "&#9658 - " + song_data.name + " - " + song_data.artist; 
+            let playbutton = String.fromCharCode(9658);
+            let title_1 = playbutton + " - " + song_data.name + " - " + song_data.artist;
+
+            let title = song_data.name + " - " + song_data.artist;
+            document.title = title;
 
             document.getElementById("song-title").innerHTML = song_data.name + " - " + song_data.artist;
             audio.play();
@@ -238,11 +268,15 @@
         function toggleShuffle() {
             //toggle shuffle
             shuffle = !shuffle;
+
+            save_shuffle();
         }
 
         function update_shuffle_button() {
             //update the shuffle button using the shuffle variable
             const shuffle_button = document.getElementById("shuffle_button");
+
+            shuffle = get_shuffle();
 
             if (shuffle) {
                 shuffle_button.style.backgroundColor = "#3498db";
@@ -256,8 +290,133 @@
             audio.currentTime = 0;
         }
 
+        async function check_if_favorite() {
+            let url = "/api/favorites/is_favorite/" + song_data.id;
 
+            try {
+                let response = await fetch(url);
+                let data = await response.json();
 
+                return data.is_favorite;
+            } catch (error) {
+                console.log(error);
+            }
+        }
+
+        async function toggle_favorite() {
+
+            let url = ""
+            if (is_favorite) {
+                url = "/api/favorites/remove/" + song_data.id;
+            } else {
+                url = "/api/favorites/add/" + song_data.id;
+
+                //little explosion animation when the favorite button is clicked
+                favorite_button_explosion();
+            }
+
+            is_favorite = !is_favorite;
+
+            try {
+                let response = await fetch(url);
+                let data = await response.json();
+
+            } catch (error) {
+                console.log(error);
+            }
+
+            update_favorite_button();
+
+        }
+        
+        async function update_favorite_button() {
+
+            is_favorite = await check_if_favorite();
+            //update the favorite button using the is_favorite variable
+            const favorite_button = document.getElementById("favorite_button");
+
+            if (is_favorite) {
+                //set text to filled heart
+                favorite_button.innerHTML = "&#x2665;";
+
+                //set text color to red
+                favorite_button.style.color = "red";
+
+                //set color to blue
+                favorite_button.style.backgroundColor = "#3498db";
+
+            } else {
+                //set text to empty heart
+                favorite_button.innerHTML = "&#x2661;";
+                //set text color to white
+                favorite_button.style.color = "white";
+
+                //set color to gray
+                favorite_button.style.backgroundColor = "#676767";
+            }
+        }
+
+        async function favorite_button_explosion() {
+            //little explosion animation when the favorite button is clicked
+            const favorite_button = document.getElementById("favorite_button");
+
+            //create 10 heart emojis
+            //that move in random directions
+            //and fade out
+            let max_distance = 250;
+            let num_hearts = 50;
+            for (let i = 0; i < num_hearts; i++) {
+                const heart = document.createElement("span");
+
+                let heart_size = Math.random() * 20 + 10;
+                let random_distance = Math.random() * max_distance;
+
+                let offset_top = favorite_button.offsetTop - 25;
+
+                heart.innerHTML = "&#x2665;";
+                heart.style.position = "absolute";
+                heart.style.left = favorite_button.offsetLeft + "px";
+                heart.style.top = offset_top + "px";
+                heart.style.color = "red";
+                heart.style.transition = "all 1s ease-in-out";
+                heart.style.fontSize = heart_size + "px";
+                heart.style.opacity = "1";
+
+                document.body.appendChild(heart);
+
+                const randomX = Math.random() * random_distance * 2 - random_distance;
+                const randomY = Math.random() * random_distance * 2 - random_distance;
+
+                setTimeout(() => {
+                    heart.style.transform = `translate(${randomX}px, ${randomY}px) scale(0.5)`;
+                    heart.style.opacity = "0";
+                }, 100);
+
+                setTimeout(() => {
+                    document.body.removeChild(heart);
+                }, 1100);
+            }
+        }
+
+        function get_shuffle() {
+            //get shuffle from local storage
+            //if it doesn't exist, set it to true
+            let shuffle = localStorage.getItem("shuffle");
+
+            if (shuffle == null) {
+                shuffle = true;
+                localStorage.setItem("shuffle", shuffle);
+            } else {
+                shuffle = shuffle == "true";
+            }
+
+            return shuffle;
+        }
+
+        function save_shuffle() {
+            //save shuffle to local storage
+            localStorage.setItem("shuffle", shuffle);
+        }
 
         function handle_key_press(e) {
             console.log("handle_key_press");
@@ -305,7 +464,9 @@
             time.innerHTML = convert_time(current_time) + " / " + convert_time(total_time);
         }
 
-        onload();
+
+        //call onload() on DOMContentLoaded
+        document.addEventListener("DOMContentLoaded", onload);
         
         audio.addEventListener("timeupdate", update_progress_bar);
 
@@ -323,10 +484,10 @@
         document.addEventListener("keydown", handle_key_press);
 
         
-        //call update_play_pause_button() every 100ms
+        //call update_play_pause_button() every 100ms to update the play/pause button
+        //this is necessary because the audio could be paused by other means
+        //such as clicking on the audio element itself
         setInterval(update_play_pause_button, 100);
-
-        setInterval(update_shuffle_button, 100);
 
 
 
