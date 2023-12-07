@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Player</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+
+        #player-container {
+            text-align: center;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 800px;
+            height: 250px;
+        }
+
+        #song-title {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        button {
+            font-size: 16px;
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            outline: none;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        #play-pause-button {
+            width: 75px;
+        }
+
+
+        #progress-bar-container {
+            width: 100%;
+            height: 10px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background-color: #3498db;
+            border-radius: 5px;
+        }
+        
+        #time {
+            font-size: 12px;
+            margin: 0;
+            margin-top: 5px;
+            display: inline;
+        }
+
+        #spectogram-container {
+            width: 100%;
+            height: 100px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        #spectogram {
+            width: 100%;
+            height: 100%;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="player-container">
+        <div id="song-title">Song Title Placeholder</div>
+
+        <div id = "spectogram-container">
+            <canvas id = "spectogram"></canvas>
+        </div>
+
+        <div id="progress-bar-container">
+            <div id="progress-bar"></div>
+            <p id = "time">0:00 / infinity</p>
+        </div>
+
+
+        <button id = "restart", onclick="restart_song()">&#8635;</button>
+
+        <button id = "skip_back", onclick="skip_to_previous_song()">&#x21E4;</button>
+
+        <button id = "skip_back_10s", onclick="skipBack()">&#8592; 10s</button>
+        <button id="play-pause-button" onclick="playSong()">Play</button>
+        <button id = "skip_forward_10s", onclick="skipForward()">10s &#8594;</button>
+
+        <button id = "skip_forward", onclick="skip_to_next_song()"> &#x21E5;</button>
+
+        <button id = "shuffle_button", onclick="toggleShuffle()"> &#x1F500;</button>
+    </div>
+
+    <script>
+        const song_data = "song_data_placeholder";
+        /*{
+        "id": self.id,
+        "name": self.name,
+        "abs_path": self.abs_path,
+        "bpm": self.bpm,
+        "length": self.length,
+        "kbps": self.kbps,
+        "genre": self.genre,
+        "artist": self.artist,
+        "album": self.album
+        }
+        */
+       const song_url = "/api/song/" + song_data.id;
+       const audio = new Audio(song_url);
+
+       audio.crossOrigin = "anonymous";
+
+       //prefetch the entire song
+        audio.preload = "auto";
+
+        let shuffle = true;
+        
+        function onload() {
+            console.log("onload");
+            console.log(song_data);
+
+            document.getElementById("song-title").innerHTML = song_data.name + " - " + song_data.artist;
+            audio.play();
+        }
+
+        function playSong() {
+            //play or pause the song
+
+            if (audio.paused) {
+                audio.play();
+            } else {
+                audio.pause();
+            }
+
+            update_play_pause_button();
+        }
+
+        function update_play_pause_button() {
+            //update the play/pause button using the audio.paused property
+            //use Pictogram
+
+            const play_pause_button = document.getElementById("play-pause-button");
+
+            if (audio.paused) {
+                play_pause_button.innerHTML = "<span>&#9658;</span>" //play triangle
+            } else {
+                play_pause_button.innerHTML = "<span><b>||</b></span>"
+            }
+        }
+
+        function skipBack() {
+            audio.currentTime -= 10;
+        }
+
+        function skipForward() {
+            audio.currentTime += 10;
+        }
+
+        function skip_to_percentage(percentage) {
+            audio.currentTime = audio.duration * percentage;
+        }
+
+        async function get_max_song_id() {
+            let url = "/api/get_num_songs";
+            // -> {"num_songs": 10}
+
+            try {
+                let response = await fetch(url);
+                let data = await response.json();
+
+                return data.num_songs;
+            } catch (error) {
+                console.log(error);
+            }
+        }
+
+        async function skip_to_next_song() {
+            
+            if (shuffle) {
+                let max_song_id = await get_max_song_id();
+
+                let max_id = parseInt(max_song_id); //NaN
+
+
+                //choose a random id between 1 and max_song_id
+                let next_song_id = Math.floor(Math.random() * max_id) + 1;
+
+                let url = "/song/" + next_song_id;
+
+                console.log(url);
+
+                window.location.href = url;
+            } else {
+                //skip to the next song in the playlist
+                let next_song_id = song_data.id + 1;
+                let url = "/song/" + next_song_id;
+                
+                //href to url
+                window.location.href = url;
+            }
+
+
+        }
+
+        function skip_to_previous_song() {
+            //skip to the previous song in the playlist
+            let previous_song_id = song_data.id - 1;
+
+            let url = "/song/" + previous_song_id;
+
+            window.location.href = url;
+        }
+
+        function toggleShuffle() {
+            //toggle shuffle
+            shuffle = !shuffle;
+        }
+
+        function update_shuffle_button() {
+            //update the shuffle button using the shuffle variable
+            const shuffle_button = document.getElementById("shuffle_button");
+
+            if (shuffle) {
+                shuffle_button.style.backgroundColor = "#3498db";
+            } else {
+                shuffle_button.style.backgroundColor = "#676767";
+            }
+        }
+
+        function restart_song() {
+            //restart the song
+            audio.currentTime = 0;
+        }
+
+
+
+
+        function handle_key_press(e) {
+            console.log("handle_key_press");
+            console.log(e);
+
+            if (e.code == "Space") {
+                playSong();
+            } else if (e.code == "ArrowLeft") {
+                skipBack();
+            } else if (e.code == "ArrowRight") {
+                skipForward();
+            } else if (e.code == "MediaTrackPrevious") {
+                skip_to_previous_song();
+            } else if (e.code == "MediaTrackNext") {
+                skip_to_next_song();
+            } else if (e.code == "KeyS") {
+                toggleShuffle();
+            } else if (e.code == "KeyR") {
+                restart_song();
+            }
+
+        }
+
+        function update_progress_bar() {
+            console.log("update_progress_bar");
+            const progress_bar = document.getElementById("progress-bar");
+            const progress = audio.currentTime / audio.duration;
+            progress_bar.style.width = progress * 100 + "%";
+
+            const time = document.getElementById("time");
+            const current_time = Math.floor(audio.currentTime);
+            const total_time = Math.floor(audio.duration);
+
+            //convert to mm:ss
+            function convert_time(time) {
+                const minutes = Math.floor(time / 60);
+                const seconds = time % 60;
+
+                //add leading zero if seconds is less than 10
+                const seconds_str = seconds < 10 ? "0" + seconds : seconds;
+
+                return minutes + ":" + seconds_str;
+            }
+
+            time.innerHTML = convert_time(current_time) + " / " + convert_time(total_time);
+        }
+
+        onload();
+        
+        audio.addEventListener("timeupdate", update_progress_bar);
+
+
+        //progress bar click event
+        document.getElementById("progress-bar-container").addEventListener("click", function (e) {
+            const container = this;
+            const offsetX = e.clientX - container.getBoundingClientRect().left;
+            const percentage = offsetX / container.clientWidth;
+
+            skip_to_percentage(percentage);
+        });
+
+        //key press event
+        document.addEventListener("keydown", handle_key_press);
+
+        
+        //call update_play_pause_button() every 100ms
+        setInterval(update_play_pause_button, 100);
+
+        setInterval(update_shuffle_button, 100);
+
+
+
+
+    </script>
+</body>
+</html>

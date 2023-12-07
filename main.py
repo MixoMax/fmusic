@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
+from fastapi.requests import Request
+import uvicorn
 
 from dataclasses import dataclass
 
@@ -34,6 +36,20 @@ class SongEntry:
     
     def __hash__(self) -> int:
         return hash(f"{self.id}{self.name}{self.abs_path}{self.bpm}{self.length}{self.kbps}{self.genre}{self.artist}{self.album}")
+    
+    def to_json(self) -> dict:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "abs_path": self.abs_path,
+            "bpm": self.bpm,
+            "length": self.length,
+            "kbps": self.kbps,
+            "genre": self.genre,
+            "artist": self.artist,
+            "album": self.album
+        }
+        
 
 
 @dataclass
@@ -45,6 +61,13 @@ class PlaylistEntry:
     
     def __str__(self) -> str:
         return f"{self.name} ({len(self.songs)} songs)"
+    
+    def to_json(self) -> dict:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "songs": [song.to_json() for song in self.songs]
+        }
 
 
 class DataBase:
@@ -88,7 +111,7 @@ class DataBase:
         return self.cursor.fetchone()[0]
 
     def get_songs(self, mode: str = "AND", limit: int = 10, **restraints) -> list[SongEntry]:
-        options = ["id", "bpm", "length", "kbps", "genre", "artist", "album"]
+        options = ["id", "bpm", "length", "kbps", "genre", "artist", "album", "name"]
         mode_options = ["AND", "OR"]
         
         restraints = {key: value for key, value in restraints.items() if key in options}
@@ -96,42 +119,34 @@ class DataBase:
         if mode not in mode_options:
             raise ValueError(F"Invalid mode {mode}. Must be one of {mode_options}")
         
+        all_songs = self.get_all_songs()
+        songs_out = []
         
-        songs = None
         for key, value in restraints.items():
+            prev_num = len(all_songs)
             
-            if type(value) in [list, tuple]:
-                val, upper_limit = value
-            else:
-                val, upper_limit = value, None
+            new_songs = []
+            for song in all_songs:
+                
+                if type(value) == tuple:
+                    if song.__dict__[key] >= value[0] and song.__dict__[key] <= value[1]:
+                        new_songs.append(song)
+                else:
+                    if song.__dict__[key] == value:
+                        new_songs.append(song)
             
-            match key:
-                case "id":
-                    new_songs = self.get_songs_by_id(val, limit, upper_limit)
-                case "bpm":
-                    new_songs = self.get_songs_by_bpm(val, limit, upper_limit)
-                case "length":
-                    new_songs = self.get_songs_by_length(val, limit, upper_limit)
-                case "kbps":
-                    new_songs = self.get_songs_by_kbps(val, limit, upper_limit)
-                case "genre":
-                    new_songs = self.get_songs_by_genre(val, limit)
-                case "artist":
-                    new_songs = self.get_songs_by_artist(val, limit)
-                case "album":
-                    new_songs = self.get_songs_by_album(val, limit)
-                case _:
-                    raise ValueError(F"Invalid key {key}. Must be one of {options}")
+            if mode == "AND":
+                all_songs = new_songs
+            elif mode == "OR":
+                pass #dont change all_songs
             
-            if songs is None:
-                songs = set(new_songs)
-            else:
-                if mode == "AND":
-                    songs = songs.intersection(new_songs)
-                elif mode == "OR":
-                    songs = songs.union(new_songs)
+            songs_out += new_songs
             
-        return list(songs)
+            print(key, prev_num, " -> ", len(all_songs))
+            
+            
+        
+        return list(set(songs_out))[:limit]
         
                         
                 
@@ -153,7 +168,6 @@ class DataBase:
         cmd = F"SELECT * FROM songs WHERE name='{song_name}'"
         self.cursor.execute(cmd)
         return SongEntry(*self.cursor.fetchone())
-    
     
     def get_song_by_path(self, song_path: str) -> SongEntry:
         cmd = F"SELECT * FROM songs WHERE abs_path='{song_path}'"
@@ -240,7 +254,7 @@ class DataBase:
         id, name, playlist_art, songs = self.cursor.fetchone()
         
         songs = list_str_to_list(songs)
-        songs = [self.get_song(song_id) for song_id in songs]
+        songs = [self.get_song_by_id(int(song_id)) for song_id in songs]
         
         return PlaylistEntry(id, name, playlist_art, songs)
         
@@ -276,13 +290,119 @@ class DataBase:
 
 
 db = DataBase()
+app = FastAPI()
 
-songs = db.get_songs(
-    mode = "AND",
-    limit = 10000,
-    artist = "Elton John",
-    album = "Goodbye Yellow Brick Road"
-)
 
-for song in songs:
-    print(song)
+
+#html + frontend
+@app.get("/")
+async def index():
+    html = """
+    <html>
+        <head>
+            <title>Music API</title>
+        </head>
+        <body>
+            <h1>Music API</h1>
+            <p>Created by <a href="https://www.github.com/MixoMax">MixoMax</a></p>
+            <p>api documentation at <a href="/docs">/docs</a></p>
+        </body>
+    </html>
+    """
+    return HTMLResponse(html)
+
+@app.get("/song/{song_id}")
+async def song_player(song_id: int):
+    song = db.get_song_by_id(song_id)
+    
+    with open("./static/song_player.html", "r") as f:
+        html = f.read()
+    
+    html = html.replace(
+        '"song_data_placeholder"',
+        str(song.to_json())
+    )
+    
+    return HTMLResponse(html)
+    
+    
+
+@app.get("/playlist/{playlist_id}")
+async def playlist_player(playlist_id: int):
+    playlist = db.get_playlist(playlist_id)
+    html = f"""
+    <html>
+        <head>
+            <link rel="stylesheet" href="/static/playlist.css">
+            <title>{playlist.name}</title>
+        </head>
+        
+        <body>
+            <h1 id = "PlaylistName">
+            {playlist.name}
+            </h1>
+            
+            <img src="/api/playlist/{playlist_id}/art" alt="playlist art" id = "PlaylistArt">
+            
+            <ul id = "SongList">
+                {''.join([f"<li><a href='/song/{song.id}'>{song.name} by {song.artist}</a></li>" for song in playlist.songs])}
+            </ul>
+            
+        </body>
+    </html>
+    """
+    return HTMLResponse(html)
+
+
+#static files
+@app.get("/static/{file_path}")
+def serve_static(file_path: str):
+    return FileResponse(F"./static/{file_path}")
+
+
+
+
+#API
+
+@app.get("/api/search")
+async def search(request: Request):
+    params = dict(request.query_params)
+    print(params)
+    songs = db.get_songs(**params)
+    return JSONResponse([song.to_json() for song in songs])
+
+@app.get("/api/song/{song_id}")
+async def get_song(song_id: int):
+    song = db.get_song_by_id(song_id)
+    return FileResponse(song.abs_path)
+
+@app.get("/api/song/{song_id}/info")
+async def get_song_info(song_id: int):
+    song = db.get_song_by_id(song_id)
+    return JSONResponse(song.to_json())
+
+@app.get("/api/song/{song_id}/art")
+async def get_song_art(song_id: int):
+    song = db.get_song_by_id(song_id)
+    return FileResponse(song.album_art)
+
+@app.get("/api/playlist/{playlist_id}")
+async def get_playlist(playlist_id: int):
+    playlist = db.get_playlist(playlist_id)
+    return JSONResponse(playlist.to_json())
+
+@app.get("/api/playlist/{playlist_id}/art")
+async def get_playlist_art(playlist_id: int):
+    playlist = db.get_playlist(playlist_id)
+    return FileResponse(playlist.playlist_art)
+
+@app.get("/api/playlist/{playlist_id}/songs")
+async def get_playlist_songs(playlist_id: int):
+    playlist = db.get_playlist(playlist_id)
+    return JSONResponse([song.to_json() for song in playlist.songs])
+
+@app.get("/api/get_num_songs")
+async def get_num_songs():
+    return JSONResponse({"num_songs": db.get_num_entries()})
+
+uvicorn.run(app, host="127.0.0.1", port=80)
