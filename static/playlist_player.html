@@ -93,8 +93,8 @@
     
             
             <div id = "spectogram-container">
-                <!-- TODO: add spectrum-->
-                <canvas id = "spectogram"></canvas>
+                <img id = "spectogram" src="" alt="spectogram">
+                <div id = "spectogram-bar"></div> <!-- this is the div that will be animated -->
             </div>
     
             <div id="progress-bar-container">
@@ -343,11 +343,12 @@
                 audio.play()
             }
 
-
-
+            song_id_history.push(index)
+            
             update_song_title()
             update_favorite_button()
             update_play_pause_button()
+            update_spectogram()
         }
 
         function skip_to_next_song() {

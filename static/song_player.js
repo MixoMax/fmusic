@@ -49,6 +49,10 @@ function onload_song() {
     document.getElementById("song-title").innerHTML = song_data.name + " - " + song_data.artist;
     
 
+    //set src in <img id = "spectogram"> to /api/specogram/<song_id>
+    update_spectogram();
+
+
     //Event Listeners and setIntervals
     audio.addEventListener("timeupdate", update_progress_bar);
     
@@ -83,6 +87,25 @@ function playSong() {
     }
 
     update_play_pause_button();
+}
+
+function update_spectogram() {
+    //update the spectogram
+
+    let url = "/api/spectogram/" + song_data.id;
+    document.getElementById("spectogram").src = url;
+}
+
+function update_spectogram_bar() {
+    let elem = document.getElementById("spectogram-bar");
+
+    //bar that overlays the spectogram image
+    //bar position x is based on audio.currentTime
+    //width is constant
+
+    let percentage = audio.currentTime / audio.duration;
+    
+    elem.style.left = percentage * 100 + "%";
 }
 
 function update_play_pause_button() {
@@ -356,6 +379,7 @@ function convert_ss_to_mmss(seconds) {
 }
 
 function update_progress_bar() {
+    
     const progress_bar = document.getElementById("progress-bar");
     const progress = audio.currentTime / audio.duration;
     progress_bar.style.width = progress * 100 + "%";
@@ -366,4 +390,6 @@ function update_progress_bar() {
 
 
     time.innerHTML = convert_ss_to_mmss(current_time) + " / " + convert_ss_to_mmss(total_time);
+
+    update_spectogram_bar();
 }

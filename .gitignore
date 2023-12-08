@@ -1,3 +1,6 @@
 
 *.db
 music.db
+
+/temp/*
+*.pyc

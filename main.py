@@ -2,10 +2,16 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 import uvicorn
 
+import librosa
+import numpy as np
+import matplotlib.pyplot as plt
+import PIL.Image as Image
+
 from dataclasses import dataclass
 
 import sqlite3
 import os
+import io
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -253,22 +259,15 @@ class DataBase:
     
     
     
-    def add_song(self, song: SongEntry) -> None:
-        cmd = F"""
-        INSERT INTO songs VALUES (
-            {song.id},
-            '{song.name}',
-            '{song.abs_path}',
-            {song.bpm},
-            {song.length},
-            {song.kbps},
-            '{song.genre}',
-            '{song.artist}',
-            '{song.album}',
-            {song.album_art}
-        );
-        """
-        self.cursor.execute(cmd)
+    def add_song(self, song: SongEntry, id_is_auto_increment: bool = True) -> None:
+        if id_is_auto_increment:
+            try:
+                song.id = self.get_num_entries() + 1
+            except TypeError:
+                #table is empty
+                song.id = 1
+        cmd = "INSERT INTO songs VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        self.cursor.execute(cmd, (song.id, song.name, song.abs_path, song.bpm, song.length, song.kbps, song.genre, song.artist, song.album, song.album_art))
         self.conn.commit()
     
     def delete_song(self, song_id: int) -> None:
@@ -388,8 +387,8 @@ async def song_player(song_id: int):
     )
     
     return HTMLResponse(html)
-    
-    
+
+
 
 @app.get("/playlist/{playlist_id}")
 async def playlist_player(playlist_id: int):
@@ -603,22 +602,76 @@ async def is_favorite(song_id: int):
     return JSONResponse({"is_favorite": db.is_favorite(song_id)})
 
 
+# spectogram using librosa
+#TODO: make this faster
+#maybe generate spectograms at indexing time but then indexing will take much longer
+@app.get("/api/spectogram/{song_id}")
+async def get_spectogram(song_id: int) -> FileResponse:
+    #calculate spectogram image
+    
+    if os.path.exists(f"./temp/spectogram_{song_id}.png"):
+        #return image
+        return FileResponse(f"./temp/spectogram_{song_id}.png")
+    
+    song = db.get_song_by_id(song_id)
+    
+    fft_size = 512
+    
+    audio_path = os.path.abspath(song.abs_path)
+    y, sr = librosa.load(audio_path)
+    S = librosa.feature.melspectrogram(y=y, sr=sr, n_fft=fft_size, hop_length=fft_size//2)
+    S_dB = librosa.power_to_db(S, ref=np.max)
+    
+    print(1)
+    
+    
+    #convas for image is 800x100
+    #so we need to stretch the image to fit and remove the whitespace left and right
+
+    fig = plt.figure(figsize=(8, 1))
+    ax = fig.add_subplot(111)
+    ax.axis("off")
+    #cmap options: https://matplotlib.org/stable/tutorials/colors/colormaps.html
+    ax.imshow(S_dB, origin="lower", aspect="auto", cmap="magma")
+    
+    
+    print(2) #we get here
+    
+    #save image to disk
+    img_path = f"./temp/spectogram_{song_id}.png"
+    
+    #load into PIL object
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", bbox_inches="tight", pad_inches=0)
+    buf.seek(0)
+    
+    img = Image.open(buf)
+    #make WHITE pixels transparent
+    img = img.convert("RGBA")
+    data = np.array(img)
+    r1, g1, b1 = 255, 255, 255 # Original value
+    r2, g2, b2, a2 = 0, 0, 0, 0 # Value that we want to replace it with
+    red, green, blue, alpha = data[:,:,0], data[:,:,1], data[:,:,2], data[:,:,3]
+    mask = (red == r1) & (green == g1) & (blue == b1)
+    data[:,:,:4][mask] = [r2, g2, b2, a2]
+    img = Image.fromarray(data)
+    
+    #save image
+    img.save(img_path)
+    
+    print(3)
+    
+    #return image
+    return FileResponse(img_path)
+    
+
+
 ## general
 
 @app.get("/api/get_num_songs")
 async def get_num_songs():
     return JSONResponse({"num_songs": db.get_num_entries()})
 
-#TODO these need to be optimized
-#currently they take approx 300ms to complete
-#this is because they need to go through all songs
-#and get the unique values for the column
-
-#possible fixes:
-#creata a new table and store all unique values there
-#and calculate it at the same time we scrape the songs
-#this would make the scraping take longer a little longer but not much
-#and the api calls would be much faster
 
 @app.get("/api/get_options")
 async def get_options_for_columns(column_name: str):
