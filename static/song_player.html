@@ -14,6 +14,9 @@
             margin: 0;
             background-color: #f4f4f4;
         }
+        h1 {
+            font-size: 50px;
+        }
     </style>
     <!-- style sheet url: localhost/static/song_player.css-->
     <!--current url localhost/song/{id}-->
@@ -22,14 +25,17 @@
     <script src="/dynamic/song_player.js/song/song_id_placeholder"></script>
 </head>
 <body>
+    <h1>
+        <a href="/">fmusic</a>
+    </h1>
     <div id="player-container">
         <div id="song-title">Song Title Placeholder</div>
         <button id = "favorite_button", onclick="toggle_favorite()"> &#x2665;</button>
 
         
-        <div id = "spectogram-container">
-            <img id = "spectogram" src="" alt="spectogram">
-            <div id = "spectogram-bar"></div> <!-- this is the div that will be animated -->
+        <div id = "spectrogram-container">
+            <img id = "spectrogram" src="" alt="spectrogram", loading="lazy">
+            <div id = "spectrogram-bar"></div> <!-- this is the div that will be animated -->
         </div>
 
         <div id="progress-bar-container">

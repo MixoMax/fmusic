@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>fmusic</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 25px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            top: 0;
+            left: 0;
+            font-size: 50px;
+        }
+        p {
+            font-size: 20px;
+        }
+
+
+        input[type=text] {
+            width: 50%;
+            height: 50px;
+            padding: 12px 20px;
+            margin: 8px 0;
+            box-sizing: border-box;
+        }
+
+        button {
+            height: 50px;
+            font-size: 16px;
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            outline: none;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+
+    </style>
+
+
+</head>
+<body>
+    <h1>fmusic</h1>
+    <p>fmusic is a Music Player and organizer developed by <a href="https://Github.com/MixoMax">MixoMax</a></p>
+
+    <p>to get started, search for something:</p>
+
+    <input type="text" id="search" placeholder="search for something (exact match)">
+    <button id="searchButton" onclick="search()">search</button>
+
+    <br>
+
+    <p>or, you can browse the <a href="/docs"> api documentation page</a></p>
+
+    <p>or, you can browse the <a href="/playlist/0"> favorites playlist</a></p>
+
+
+    <script>
+        function search() {
+            var search = document.getElementById("search").value;
+            if (search == "") {
+                return;
+            }
+            let url = "/dynamic_playlist_full_text_search?q=" + search;
+
+            window.location.href = url;
+        }
+
+        document.addEventListener("keyup", function(event) {
+            if (event.keyCode === 13) {
+                event.preventDefault();
+                search();
+            }
+        });
+    </script>
+</body>
+</html>

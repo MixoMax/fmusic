@@ -69,7 +69,7 @@ button:hover {
     display: inline;
 }
 
-#spectogram-container {
+#spectrogram-container {
     width: 100%;
     height: 100px;
     background-color: #e0e0e0;
@@ -78,7 +78,7 @@ button:hover {
     margin-top: 0px;
 }
 
-#spectogram {
+#spectrogram {
     /*image 800x100
     zoom in 20%
     */
@@ -94,11 +94,11 @@ button:hover {
     background-color: transparent;
 }
 
-#spectogram-container:hover {
+#spectrogram-container:hover {
     background-color: #d0d0d0;
 }
 
-#spectogram-bar {
+#spectrogram-bar {
     width: 8px;
     top: -2px;
     height: 100px;

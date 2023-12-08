@@ -12,6 +12,7 @@ from dataclasses import dataclass
 import sqlite3
 import os
 import io
+import time
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -361,18 +362,8 @@ app = FastAPI()
 #html + frontend
 @app.get("/")
 async def index():
-    html = """
-    <html>
-        <head>
-            <title>Music API</title>
-        </head>
-        <body>
-            <h1>Music API</h1>
-            <p>Created by <a href="https://www.github.com/MixoMax">MixoMax</a></p>
-            <p>api documentation at <a href="/docs">/docs</a></p>
-        </body>
-    </html>
-    """
+    with open("./static/index.html", "r") as f:
+        html = f.read()
     return HTMLResponse(html)
 
 @app.get("/song/{song_id}")
@@ -602,16 +593,19 @@ async def is_favorite(song_id: int):
     return JSONResponse({"is_favorite": db.is_favorite(song_id)})
 
 
-# spectogram using librosa
+# spectrogram using librosa
 #TODO: make this faster
-#maybe generate spectograms at indexing time but then indexing will take much longer
-@app.get("/api/spectogram/{song_id}")
-async def get_spectogram(song_id: int) -> FileResponse:
-    #calculate spectogram image
+#maybe generate spectrograms at indexing time but then indexing will take much longer
+@app.get("/api/spectrogram/{song_id}")
+async def get_spectrogram(song_id: int) -> FileResponse:
+    #calculate spectrogram image
+    t_start = time.time()
     
-    if os.path.exists(f"./temp/spectogram_{song_id}.png"):
+    if os.path.exists(f"./temp/spectrogram_{song_id}.png"):
         #return image
-        return FileResponse(f"./temp/spectogram_{song_id}.png")
+        t_end = time.time()
+        print(f"{(t_end - t_start)*1000:.2f} ms")
+        return FileResponse(f"./temp/spectrogram_{song_id}.png")
     
     song = db.get_song_by_id(song_id)
     
@@ -622,9 +616,6 @@ async def get_spectogram(song_id: int) -> FileResponse:
     S = librosa.feature.melspectrogram(y=y, sr=sr, n_fft=fft_size, hop_length=fft_size//2)
     S_dB = librosa.power_to_db(S, ref=np.max)
     
-    print(1)
-    
-    
     #convas for image is 800x100
     #so we need to stretch the image to fit and remove the whitespace left and right
 
@@ -634,11 +625,8 @@ async def get_spectogram(song_id: int) -> FileResponse:
     #cmap options: https://matplotlib.org/stable/tutorials/colors/colormaps.html
     ax.imshow(S_dB, origin="lower", aspect="auto", cmap="magma")
     
-    
-    print(2) #we get here
-    
     #save image to disk
-    img_path = f"./temp/spectogram_{song_id}.png"
+    img_path = f"./temp/spectrogram_{song_id}.png"
     
     #load into PIL object
     buf = io.BytesIO()
@@ -659,8 +647,8 @@ async def get_spectogram(song_id: int) -> FileResponse:
     #save image
     img.save(img_path)
     
-    print(3)
-    
+    t_end = time.time()
+    print(f"{(t_end - t_start)*1000:.2f} ms")
     #return image
     return FileResponse(img_path)
     

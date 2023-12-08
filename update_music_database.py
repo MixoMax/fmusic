@@ -83,7 +83,13 @@ def get_metadata(abs_path) -> SongEntry:
         name = abs_path.split("\\")[-1]
         #remove file extension
         name =".".join(name.split(".")[:-1])
-        print("No name for", abs_path, "setting to", name)
+        
+        file_extension = abs_path.split(".")[-1]
+        if file_extension == "flac":
+            pass
+        else:
+            print("no name found, using filename:", name, "file_extension:", file_extension)
+        
     except IndexError:
         name = abs_path.split("\\")[-1]
         name =".".join(name.split(".")[:-1])

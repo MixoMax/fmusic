@@ -16,6 +16,21 @@
             background-color: #f4f4f4;
         }
 
+        #HomeButton {
+            font-size: 50px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            margin: 25px;
+        }
+
+        /*HomeButton Link color*/
+        #HomeButton a {
+            color: black;
+            text-decoration: none;
+        }
+
         #SongList {
             width: 100%;
             height: 55vh;
@@ -64,9 +79,14 @@
 
 </head>
 <body>
+    <h1 id = "HomeButton">
+        <a href="/">fmusic</a>
+    </h1>
+
     <div id = "playlist-container">
         <div id = "playlist-title">
             <h1 id = "PlayListTitle">Playlist Title</h1>
+        </div>
 
         <div id = "SongList">
             <ul>
@@ -92,9 +112,9 @@
             <button id = "favorite_button", onclick="toggle_favorite()"> &#x2665;</button>
     
             
-            <div id = "spectogram-container">
-                <img id = "spectogram" src="" alt="spectogram">
-                <div id = "spectogram-bar"></div> <!-- this is the div that will be animated -->
+            <div id = "spectrogram-container">
+                <img id = "spectrogram" src="" alt="spectrogram", loading="lazy">
+                <div id = "spectrogram-bar"></div> <!-- this is the div that will be animated -->
             </div>
     
             <div id="progress-bar-container">
@@ -115,6 +135,7 @@
     
             <button id = "shuffle_button", onclick="toggleShuffle()"> &#x1F500;</button>
         </div>
+    </div>
 
 
     <script>
@@ -348,7 +369,7 @@
             update_song_title()
             update_favorite_button()
             update_play_pause_button()
-            update_spectogram()
+            update_spectrogram()
         }
 
         function skip_to_next_song() {
@@ -368,16 +389,23 @@
         }
 
         function skip_to_previous_song() {
-            let new_index = current_song_index - 1
 
-            if (song_id_history.length > 0) {
-                new_index = song_id_history.pop()
+            console.log(song_id_history)
+            
+            let new_index = 0
+
+            if (song_id_history.length > 1) {
+                song_id_history.pop()
+                new_index = song_id_history[song_id_history.length - 1]
+            } else {
+                new_index = current_song_index - 1
             }
 
             if (new_index >= 0) {
                 skip_to_song(new_index)
                 current_song_index = new_index
             }
+
         }
 
         onload_playlist()
