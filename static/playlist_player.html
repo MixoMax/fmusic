@@ -160,6 +160,8 @@
             update_song_title()
 
             setInterval(update_playlist_entries_style, 100)
+
+            setInterval(autoplay_next_song, 100)
         }
 
         function append_songs_to_list (songs) {
@@ -230,7 +232,11 @@
 
             let song_length = document.createElement("div")
             song_length.className = "Data"
-            song_length.innerHTML = convert_ss_to_mmss(song.length)
+            if (index == -1) {
+                song_length.innerHTML = "Time"
+            } else {
+                song_length.innerHTML = convert_ss_to_mmss(song.length)
+            }
 
             let song_artist = document.createElement("div")
             song_artist.className = "Data"
@@ -253,6 +259,13 @@
             list_div.appendChild(song_div)
         }
 
+        function autoplay_next_song() {
+            if (audio.ended) {
+                skip_to_next_song()
+                audio.play()
+            }
+        }
+
         function update_song_title() {
             let title = song_data.name + " - " + song_data.artist;
             document.getElementById("song-title").innerHTML = title
@@ -272,14 +285,25 @@
                         button.innerHTML = "&#10074;&#10074;"
                     }
 
+                    //set document title to song_name - artist
+                    document.title = song.name + " - " + song.artist
+
                     //set background color slightly different from any other SongListEntry
                     document.getElementById("song_" + i).style.backgroundColor = "#d4d4d4"
 
                 } else {
                     //if the song is not the current song
                     button.innerHTML = "&#9658"
+
+                    //set background color back to normal
+
+                    if (i % 2 == 0) {
+                        document.getElementById("song_" + i).style.backgroundColor = "#e4e4e4"
+                    } else {
+                        document.getElementById("song_" + i).style.backgroundColor = "#f4f4f4"
+                    
                 }
-            }
+            }}
         }
 
         function skip_to_song_or_pause(index) {
@@ -329,7 +353,10 @@
         function skip_to_next_song() {
             let new_index = current_song_index + 1
 
+            let shuffle = get_shuffle()
+
             if (shuffle) {
+                console.log("shuffle")
                 new_index = Math.floor(Math.random() * playlist_songs.length)
             }
 

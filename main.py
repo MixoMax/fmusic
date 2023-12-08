@@ -172,8 +172,13 @@ class DataBase:
             print(key, prev_num, " -> ", len(all_songs))
             
             
+        if limit is not None:
+            songs_out = list(set(songs_out))[:limit]
+        else:
+            print("limit is None")
+            songs_out = list(set(songs_out))
         
-        return list(set(songs_out))[:limit]      
+        return songs_out
     
     def get_song_by_id(self, song_id: int) -> SongEntry:
         cmd = F"SELECT * FROM songs WHERE id={song_id}"
@@ -339,6 +344,15 @@ class DataBase:
         self.cursor.execute(cmd, (song_id,))
         return len(self.cursor.fetchall()) > 0
 
+    
+    def full_text_search(self, q: str) -> list[SongEntry]:
+        #searches all columns for q
+        #returns a list of SongEntry objects
+        #that contain q in one of their columns
+        
+        cmd = F"SELECT * FROM songs WHERE name LIKE '%{q}%' OR abs_path LIKE '%{q}%' OR bpm LIKE '%{q}%' OR length LIKE '%{q}%' OR kbps LIKE '%{q}%' OR genre LIKE '%{q}%' OR artist LIKE '%{q}%' OR album LIKE '%{q}%'"
+        self.cursor.execute(cmd)
+        return [SongEntry(*song) for song in self.cursor.fetchall()]
 
 db = DataBase()
 app = FastAPI()
@@ -396,6 +410,72 @@ async def playlist_player(playlist_id: int):
     return HTMLResponse(html)
 
 
+#dynamically generated playlist
+@app.get("/dynamic_playlist")
+async def dynamic_playlist(**params):
+    #url = /dynamic_playlist?params={"limit": 10, "mode": "AND", "playlist_name": "Dynamic Playlist", "bpm": (100, 200), "genre": "Rock", "artist": "AC/DC"}
+    
+    #get playlist by params
+    
+    params = params["params"] #str
+    
+    new_params = save_eval(params)
+    
+    if "limit" in new_params:
+        limit = new_params["limit"]
+        del new_params["limit"]
+    else:
+        limit = None
+        
+    if "mode" in new_params:
+        mode = new_params["mode"]
+        del new_params["mode"]
+    else:
+        mode = "AND"
+        
+    if "playlist_name" in new_params:
+        playlist_name = new_params["playlist_name"]
+        del new_params["playlist_name"]
+    else:
+        playlist_name = "Dynamic Playlist"
+    
+    
+    songs = db.get_songs(**new_params, limit=limit, mode=mode)
+    
+    #inject songs into playlist_player.html
+    with open("./static/playlist_player.html", "r") as f:
+        html = f.read()
+    
+    playlist = PlaylistEntry(0, playlist_name, None, songs)
+    
+    html = html.replace(
+        '"playlist_data_placeholder"',
+        str(playlist.to_json())
+    )
+    
+    return HTMLResponse(html)
+
+
+@app.get("/dynamic_playlist_full_text_search")
+async def dynamic_playlist_full_text_search(q: str):
+    #url = /dynamic_playlist_full_text_search?q=hello
+
+    songs = db.full_text_search(q)
+    
+    #inject songs into playlist_player.html
+    with open("./static/playlist_player.html", "r") as f:
+        html = f.read()
+    
+    playlist = PlaylistEntry(0, "Search Results", None, songs)
+    
+    html = html.replace(
+        '"playlist_data_placeholder"',
+        str(playlist.to_json())
+    )
+    
+    return HTMLResponse(html)
+
+
 #static files
 @app.get("/static/{file_path}")
 def serve_static(file_path: str):
@@ -426,7 +506,7 @@ def serve_dynamic_song(file_path: str, song_id: int):
 
 @app.get("/favicon.ico")
 def serve_favicon():
-    return FileResponse("./static/favicon.ico")
+    return FileResponse("./static/music.png")
 
 
 
@@ -454,6 +534,17 @@ async def search(**params):
 
     songs = db.get_songs(**new_params, limit=limit, mode=mode)
     print(len(songs))
+    return JSONResponse([song.to_json() for song in songs])
+
+
+@app.get("/api/full_search")
+async def full_text_search(q:str) -> list[SongEntry]:
+    #url = /api/full_search?q=hello
+    
+    #searches all columns for q
+    #returns a list of SongEntry objects
+    
+    songs = db.full_text_search(q)
     return JSONResponse([song.to_json() for song in songs])
 
 ## Songs
@@ -590,4 +681,6 @@ async def get_option_frequency(column_name: str):
     return JSONResponse(options)
 
 
-uvicorn.run(app, host="127.0.0.1", port=80)
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=80)

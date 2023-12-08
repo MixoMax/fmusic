@@ -66,7 +66,7 @@ function onload_song() {
     //play/pause button
     setInterval(update_play_pause_button, 100);
 
-    update_shuffle_button();
+    setInterval(update_shuffle_button, 100);
     
     //call update_progress_bar once after 1ms
     setTimeout(update_progress_bar, 1);
