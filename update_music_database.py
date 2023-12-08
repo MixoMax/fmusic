@@ -29,7 +29,7 @@ db = DataBase()
 #kbps:int
 #genre:str
 #artist:str
-#album:str
+#album:str 
 #album_art:bytes #if we dont find any, set to empty bytes b""
 
 

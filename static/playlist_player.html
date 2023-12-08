@@ -16,6 +16,16 @@
             background-color: #f4f4f4;
         }
 
+        #playlist-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 55vw;
+            background-color: #f4f4f4;
+            border-radius: 10px;
+        }
+
         #HomeButton {
             font-size: 50px;
             position: absolute;
@@ -42,8 +52,9 @@
 
         .SongListEntry {
             display: flex;
-            align-items: center;
             justify-content: space-between;
+            align-items: center;
+            
             margin: 1px;
             width: 100%;
             height: 5vh;
@@ -59,8 +70,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 21%;
-            height: 100%;
+            width: 20%;
+            word-wrap:normal;
+            height: 120%;
             font-size: 1.5vh;
         }
 
@@ -260,7 +272,12 @@
 
             let song_name = document.createElement("a")
             song_name.className = "Data"
-            song_name.innerHTML = song.name
+
+            let song_name_text = song.name
+            if (song_name_text.length > 75) {
+                song_name_text = song_name_text.substring(0, 30) + "..."
+            }
+            song_name.innerHTML = song_name_text
             
             if (index != -1) {
                 song_name.href = "/song/" + song.id
@@ -270,6 +287,8 @@
                 song_name.style.color = "black"
             }
 
+
+
             let song_length = document.createElement("div")
             song_length.className = "Data"
             if (index == -1) {
@@ -277,6 +296,8 @@
             } else {
                 song_length.innerHTML = convert_ss_to_mmss(song.length)
             }
+
+
 
             let song_artist = document.createElement("a")
             song_artist.className = "Data"
@@ -297,7 +318,11 @@
 
             let song_album = document.createElement("a")
             song_album.className = "Data"
-            song_album.innerHTML = song.album
+            let album_text = song.album
+            if (album_text.length > 75) {
+                album_text = album_text.substring(0, 30) + "..."
+            }
+            song_album.innerHTML = album_text
 
             //href
             if (index != -1) {

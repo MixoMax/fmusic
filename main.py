@@ -366,6 +366,20 @@ async def index():
         html = f.read()
     return HTMLResponse(html)
 
+@app.get("/song/random")
+async def random_song_player():
+    song_id = np.random.randint(1, db.get_num_entries())
+    
+    with open("./static/song_player.html", "r") as f:
+        html = f.read()
+    
+    html = html.replace(
+        "song_id_placeholder",
+        str(song_id)
+    )
+    
+    return HTMLResponse(html)
+
 @app.get("/song/{song_id}")
 async def song_player(song_id: int):
     
@@ -497,6 +511,14 @@ def serve_dynamic_song(file_path: str, song_id: int):
 @app.get("/favicon.ico")
 def serve_favicon():
     return FileResponse("./static/music.png")
+
+@app.get("/robots.txt")
+def serve_robots():
+    return FileResponse("./static/robots.txt")
+
+@app.get("/license.txt")
+def serve_license():
+    return FileResponse("./static/license.txt")
 
 
 
