@@ -55,9 +55,20 @@ function onload_song() {
 
     //Event Listeners and setIntervals
     audio.addEventListener("timeupdate", update_progress_bar);
+
+    setInterval(update_progress_bar, 10);
     
     //clickable progress bar
     document.getElementById("progress-bar-container").addEventListener("click", function (e) {
+        const container = this;
+        const offsetX = e.clientX - container.getBoundingClientRect().left;
+        const percentage = offsetX / container.clientWidth;
+    
+        skip_to_percentage(percentage);
+    });
+
+    //clickable spectrogram
+    document.getElementById("spectrogram-container").addEventListener("click", function (e) {
         const container = this;
         const offsetX = e.clientX - container.getBoundingClientRect().left;
         const percentage = offsetX / container.clientWidth;

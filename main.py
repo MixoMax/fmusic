@@ -505,6 +505,17 @@ def serve_favicon():
 
 @app.get("/api/search")
 async def search(**params):
+    #param options:
+    #limit: int
+    #mode: str (AND or OR)
+    #bpm: int or tuple (min, max)
+    #length: int or tuple (min, max)
+    #kbps: int or tuple (min, max)
+    #genre: str
+    #artist: str
+    #album: str
+    #name: str
+    
 
     params = params["params"] #str
     

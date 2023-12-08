@@ -71,6 +71,16 @@
             font-size: 1.5vh;
         }
 
+        #SongList a {
+            color: black;
+            text-decoration: none;
+        }
+        
+        #SongList a:hover {
+            color: #2980b9;
+        }
+
+
     </style>
 
     <link rel="stylesheet" href="/static/song_player.css", type="text/css">
@@ -247,9 +257,18 @@
             }
 
 
-            let song_name = document.createElement("div")
+
+            let song_name = document.createElement("a")
             song_name.className = "Data"
             song_name.innerHTML = song.name
+            
+            if (index != -1) {
+                song_name.href = "/song/" + song.id
+            } else {
+                //disable :hover effect
+                song_name.style.cursor = "default"
+                song_name.style.color = "black"
+            }
 
             let song_length = document.createElement("div")
             song_length.className = "Data"
@@ -259,23 +278,68 @@
                 song_length.innerHTML = convert_ss_to_mmss(song.length)
             }
 
-            let song_artist = document.createElement("div")
+            let song_artist = document.createElement("a")
             song_artist.className = "Data"
             song_artist.innerHTML = song.artist
 
-            let song_album = document.createElement("div")
+            //href
+            if (index != -1) {
+                if (song.artist != "Unknown") {
+                    song_artist.href = '/dynamic_playlist?params={"artist": "' + song.artist + '"}'
+                }
+            } else {
+                //disable :hover effect
+                song_artist.style.cursor = "default"
+                song_artist.style.color = "black"
+            }
+
+
+
+            let song_album = document.createElement("a")
             song_album.className = "Data"
             song_album.innerHTML = song.album
 
-            let song_genre = document.createElement("div")
+            //href
+            if (index != -1) {
+                song_album.href = '/dynamic_playlist?params={"album": "' + song.album + '"}'
+            } else {
+                //disable :hover effect
+                song_album.style.cursor = "default"
+                song_album.style.color = "black"
+            }
+
+
+
+            let song_genre = document.createElement("a")
             song_genre.className = "Data"
             song_genre.innerHTML = song.genre
+
+            //href
+            if (index != -1) {
+                if (song.genre != "Unknown") {
+                song_genre.href = '/dynamic_playlist?params={"genre": "' + song.genre + '"}'
+                }} else {
+                //disable :hover effect
+                song_genre.style.cursor = "default"
+                song_genre.style.color = "black"
+            }
+
+            if (song.artist == "Unknown") {
+                song_artist.style.color = "grey"
+            }
+            if (song.genre == "Unknown") {
+                song_genre.style.color = "grey"
+            }
+            if (song.album == "Unknown") {
+                song_album.style.color = "grey"
+            }
 
             song_div.appendChild(play_button)
             song_div.appendChild(song_name)
             song_div.appendChild(song_length)
             song_div.appendChild(song_artist)
             song_div.appendChild(song_album)
+            song_div.appendChild(song_genre)
 
             list_div.appendChild(song_div)
         }

@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Music Player</title>
+    <link rel="stylesheet" href="/static/song_player.css", type="text/css">
+
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -14,18 +16,30 @@
             margin: 0;
             background-color: #f4f4f4;
         }
-        h1 {
-            font-size: 50px;
-        }
-    </style>
-    <!-- style sheet url: localhost/static/song_player.css-->
-    <!--current url localhost/song/{id}-->
-    <link rel="stylesheet" href="/static/song_player.css", type="text/css">
 
+        #player-container {
+            width:30vw;
+        }
+
+        #HomeButton {
+            font-size: 50px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            margin: 25px;
+        }
+
+        #HomeButton a {
+            color: black;
+            text-decoration: none;
+        }
+
+    </style>
     <script src="/dynamic/song_player.js/song/song_id_placeholder"></script>
 </head>
 <body>
-    <h1>
+    <h1 id="HomeButton">
         <a href="/">fmusic</a>
     </h1>
     <div id="player-container">

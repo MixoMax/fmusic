@@ -7,8 +7,11 @@ from mutagen.id3 import ID3, APIC, error
 from mutagen.mp3 import MP3
 from mutagen.flac import FLAC
 from mutagen.oggvorbis import OggVorbis
-from mutagen.m4a import M4A
+from mutagen.mp4 import MP4 as M4A
 from mutagen.wave import WAVE
+
+
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 
 
@@ -37,6 +40,9 @@ for file in os.listdir("./temp"):
 
 
 def is_song(filename):
+    if "downloading" in filename:
+        return False
+    
     file_endings = [".mp3", ".wav", ".flac", ".m4a", ".ogg"]
     for ending in file_endings:
         if filename.endswith(ending):
@@ -79,7 +85,7 @@ def get_metadata(abs_path) -> SongEntry:
     
     try:
         name = info_dict["TIT2"][0]
-    except KeyError:
+    except:
         name = abs_path.split("\\")[-1]
         #remove file extension
         name =".".join(name.split(".")[:-1])
@@ -89,41 +95,34 @@ def get_metadata(abs_path) -> SongEntry:
             pass
         else:
             print("no name found, using filename:", name, "file_extension:", file_extension)
-        
-    except IndexError:
-        name = abs_path.split("\\")[-1]
-        name =".".join(name.split(".")[:-1])
+
     
     try:
         artist = info_dict["TPE1"].text[0]
-    except KeyError:
-        artist = "Unknown"
-    except IndexError:
+    except:
         artist = "Unknown"
     
     try:
         album = info_dict["TALB"].text[0]
-    except KeyError:
+    except:
         album = "Unknown"
-    except IndexError:
-        album = "Unknown"
+
         
     try:
         genre = info_dict["TCON"].text[0]
-    except KeyError:
+    except:
         genre = "Unknown"
-    except IndexError:
-        genre = "Unknown"
+
         
     try:
         album_art = info_dict["APIC"].data
         album_art = bytes(album_art)
-    except KeyError:
+    except:
         album_art = b""
     
     try:
         bpm = info_dict["TBPM"][0]
-    except KeyError:
+    except:
         bpm = 0
     
     return SongEntry(0, name, abs_path, bpm, length, kbps, genre, artist, album, album_art)
