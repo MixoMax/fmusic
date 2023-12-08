@@ -7,6 +7,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import PIL.Image as Image
 
+
+
 from dataclasses import dataclass
 
 import sqlite3
@@ -630,7 +632,7 @@ async def is_favorite(song_id: int):
 #TODO: make this faster
 #maybe generate spectrograms at indexing time but then indexing will take much longer
 @app.get("/api/spectrogram/{song_id}")
-async def get_spectrogram(song_id: int) -> FileResponse:
+def get_spectrogram(song_id: int) -> FileResponse:
     #calculate spectrogram image
     t_start = time.time()
     
@@ -641,12 +643,15 @@ async def get_spectrogram(song_id: int) -> FileResponse:
         return FileResponse(f"./temp/spectrogram_{song_id}.png")
     
     song = db.get_song_by_id(song_id)
-    
-    fft_size = 512
+
     
     audio_path = os.path.abspath(song.abs_path)
+    
+    #load audio
     y, sr = librosa.load(audio_path)
-    S = librosa.feature.melspectrogram(y=y, sr=sr, n_fft=fft_size, hop_length=fft_size//2)
+    
+    #calculate spectrogram
+    S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128, fmax=8000)
     S_dB = librosa.power_to_db(S, ref=np.max)
     
     #convas for image is 800x100
