@@ -4,13 +4,117 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+
+        #SongList {
+            width: 100%;
+            height: 55vh;
+            overflow-y: scroll;
+            overflow-x: hidden;
+        }
+
+
+
+        .SongListEntry {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 1px;
+            width: 100%;
+            height: 5vh;
+            background-color: #f4f4f4;
+            border-bottom: 1px solid #d4d4d4;
+        }
+
+        .SongListEntry:hover {
+            background-color: #e4e4e4;
+        }
+
+        .Data {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 21%;
+            height: 100%;
+            font-size: 1.5vh;
+        }
+
+        .play_button {
+            width: 10%;
+            height: 100%;
+            margin-bottom: 3px;
+            font-size: 1.5vh;
+        }
+
+    </style>
+
+    <link rel="stylesheet" href="/static/song_player.css", type="text/css">
+
+    <script src="/static/song_player.js"></script>
+
 </head>
 <body>
-    <div id = "PlayListTitle">PlayListTitle</div>
+    <div id = "playlist-container">
+        <div id = "playlist-title">
+            <h1 id = "PlayListTitle">Playlist Title</h1>
 
-    <ul id = "PlayList">
+        <div id = "SongList">
+            <ul>
+                <!--
+
+                <div class = "SongListEntry">
+                    <button class = "play_button" onclick="skip_to_song({song_index})">Play</button>
+                    <div class = "Data" id = "song_name">{song_name}</div>
+                    <div class = "Data" id = "song_length">{song_length}</div>
+                    <div class = "Data" id = "song_artist">{song_artist}</div>
+                    <div class = "Data" id = "song_album">{song_album}</div>
+                    <div class = "Data" id = "song_genre">{song_genre}</div>
+                </div>
     
-    </ul>
+                all class = Data will be next to each other
+                -->
+            </ul>
+        </div>
+    
+        <!-- Song Player (see ./song_player.html)-->
+        <div id="player-container">
+            <div id="song-title">Song Title Placeholder</div>
+            <button id = "favorite_button", onclick="toggle_favorite()"> &#x2665;</button>
+    
+            
+            <div id = "spectogram-container">
+                <!-- TODO: add spectrum-->
+                <canvas id = "spectogram"></canvas>
+            </div>
+    
+            <div id="progress-bar-container">
+                <div id="progress-bar"></div>
+                <p id = "time">0:00 / infinity</p>
+            </div>
+    
+    
+            <button id = "restart", onclick="restart_song()">&#8635;</button>
+    
+            <button id = "skip_back", onclick="skip_to_previous_song()">&#x21E4;</button>
+    
+            <button id = "skip_back_10s", onclick="skipBack()">&#8592; 10s</button>
+            <button id="play-pause-button" onclick="playSong()">Play</button>
+            <button id = "skip_forward_10s", onclick="skipForward()">10s &#8594;</button>
+    
+            <button id = "skip_forward", onclick="skip_to_next_song()"> &#x21E5;</button>
+    
+            <button id = "shuffle_button", onclick="toggleShuffle()"> &#x1F500;</button>
+        </div>
 
 
     <script>
@@ -35,41 +139,220 @@
         const playlist_title = playlist_data.name
         const playlist_songs = playlist_data.songs
 
-        function onload() {
-            let playlist_title = playlist_data.name
-            console.log(playlist_title)
+        let current_song_index = 0
+        song_data = playlist_songs[current_song_index]
+
+        let song_id_history = []
+
+        shuffle = get_shuffle()
+
+        var_setup(song_data)
+
+        function onload_playlist() {
+            console.log("onload_playlist")
+            
             document.getElementById("PlayListTitle").innerHTML = playlist_title
 
-            append_songs()
+            append_songs_to_list(playlist_songs)
+
+            onload_song()
+
+            update_song_title()
+
+            setInterval(update_playlist_entries_style, 100)
         }
 
-        function append_songs() {
+        function append_songs_to_list (songs) {
+
+            let header = {
+                "name": "Name",
+                "length": "Length",
+                "artist": "Artist",
+                "album": "Album",
+                "genre": "Genre"}
+            
+            add_song_to_list(header, -1)
+
+            for (let i = 0; i < songs.length; i++) {
+                const song = songs[i];
+                add_song_to_list(song, i)
+            }
+        }
+
+        function add_song_to_list(song_data, index) {
+            let song = song_data
+            let list_div = document.getElementById("SongList")
+
+            /*
+
+            <div class = "SongListEntry">
+                <button class = "play_button" onclick="skip_to_song({song_index})">Play</button>
+                <div class = "Data" id = "song_name">{song_name}</div>
+                <div class = "Data" id = "song_length">{song_length}</div>
+                <div class = "Data" id = "song_artist">{song_artist}</div>
+                <div class = "Data" id = "song_album">{song_album}</div>
+                <div class = "Data" id = "song_genre">{song_genre}</div>
+            </div>
+
+            all class = Data will be next to each other
+            */
+            
+            let song_div = document.createElement("div")
+            song_div.className = "SongListEntry"
+            song_div.id = "song_" + index
+
+            //color every other SongListEntry slightly different
+            if (index % 2 == 0) {
+                song_div.style.backgroundColor = "#e4e4e4"
+            }
+
+
+
+            let play_button = document.createElement("button")
+            play_button.className = "play_button"
+            play_button.onclick = function() {skip_to_song_or_pause(index)}
+            play_button.innerHTML = "&#9658"
+
+            if (index == -1) {
+                play_button.innerHTML = ""
+                play_button.disabled = true
+                play_button.style.cursor = "default"
+                play_button.style.backgroundColor = "transparent"
+                //stick to the top
+                song_div.style.position = "sticky"
+                song_div.style.top = "0"
+            }
+
+
+            let song_name = document.createElement("div")
+            song_name.className = "Data"
+            song_name.innerHTML = song.name
+
+            let song_length = document.createElement("div")
+            song_length.className = "Data"
+            song_length.innerHTML = convert_ss_to_mmss(song.length)
+
+            let song_artist = document.createElement("div")
+            song_artist.className = "Data"
+            song_artist.innerHTML = song.artist
+
+            let song_album = document.createElement("div")
+            song_album.className = "Data"
+            song_album.innerHTML = song.album
+
+            let song_genre = document.createElement("div")
+            song_genre.className = "Data"
+            song_genre.innerHTML = song.genre
+
+            song_div.appendChild(play_button)
+            song_div.appendChild(song_name)
+            song_div.appendChild(song_length)
+            song_div.appendChild(song_artist)
+            song_div.appendChild(song_album)
+
+            list_div.appendChild(song_div)
+        }
+
+        function update_song_title() {
+            let title = song_data.name + " - " + song_data.artist;
+            document.getElementById("song-title").innerHTML = title
+        }
+
+        function update_playlist_entries_style() {
+            //update all play buttons
 
             for (let i = 0; i < playlist_songs.length; i++) {
                 const song = playlist_songs[i];
-                song_id = song.id
-                const song_name = song.name
-                const song_abs_path = song.abs_path
-                const song_bpm = song.bpm
-                const song_length = song.length
-                const song_kbps = song.kbps
-                const song_genre = song.genre
-                const song_artist = song.artist
-                const song_album = song.album
+                let button = document.getElementById("song_" + i).getElementsByClassName("play_button")[0]
+                if (i == current_song_index) {
+                    //if the song is the current song
+                    if (audio.paused) {
+                        button.innerHTML = "&#9658"
+                    } else {
+                        button.innerHTML = "&#10074;&#10074;"
+                    }
 
-                //console.log(song_name)
+                    //set background color slightly different from any other SongListEntry
+                    document.getElementById("song_" + i).style.backgroundColor = "#d4d4d4"
 
-                let url = "/api/song/" + song_id;
-                const song_html = "<li>" + song_name + "<audio controls><source src='" + url + "' type='audio/mpeg', loading='lazy'></audio></li>"
-                document.getElementById("PlayList").innerHTML += song_html
+                } else {
+                    //if the song is not the current song
+                    button.innerHTML = "&#9658"
+                }
             }
-
         }
 
-        //call onload after DOM is loaded
-        document.addEventListener("DOMContentLoaded", function(event) { 
-            onload()
-        });
+        function skip_to_song_or_pause(index) {
+            if (index == current_song_index) {
+                //if the song is the current song
+                if (audio.paused) {
+                    audio.play()
+                } else {
+                    audio.pause()
+                }
+            } else {
+                //if the song is not the current song
+                skip_to_song(index)
+                audio.play()
+            }
+        }
+
+        function skip_to_song(index) {
+
+            current_song_index = index
+
+            console.log(index, playlist_songs.length)
+
+            let is_playing = audio.paused == false
+
+            if (is_playing) {
+                audio.pause()
+                audio.currentTime = 0
+            }
+
+            audio = null
+
+            song_data = playlist_songs[index]
+            var_setup(song_data)
+            
+            if (is_playing) {
+                audio.play()
+            }
+
+
+
+            update_song_title()
+            update_favorite_button()
+            update_play_pause_button()
+        }
+
+        function skip_to_next_song() {
+            let new_index = current_song_index + 1
+
+            if (shuffle) {
+                new_index = Math.floor(Math.random() * playlist_songs.length)
+            }
+
+            if (new_index < playlist_songs.length) {
+                skip_to_song(new_index)
+                current_song_index = new_index
+            }
+        }
+
+        function skip_to_previous_song() {
+            let new_index = current_song_index - 1
+
+            if (song_id_history.length > 0) {
+                new_index = song_id_history.pop()
+            }
+
+            if (new_index >= 0) {
+                skip_to_song(new_index)
+                current_song_index = new_index
+            }
+        }
+
+        onload_playlist()
 
     </script>
 

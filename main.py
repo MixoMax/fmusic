@@ -1,7 +1,5 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
-from fastapi.requests import Request
 import uvicorn
 
 from dataclasses import dataclass
@@ -16,7 +14,28 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 def list_str_to_list(list_str: str) -> list:
     return list_str[1:-1].split(", ")
+
+def is_int(s: str) -> bool:
+    try:
+        int(s)
+        return True
+    except ValueError:
+        return False
+
+def save_eval(cmd:str) -> any:
     
+    forbidden_strings = [
+        "import",
+        "__",
+        "os",
+        "sys",
+        "open"
+    ]
+    
+    if any([string in cmd for string in forbidden_strings]):
+        return None
+    else:
+        return eval(cmd)
     
 @dataclass
 class SongEntry:
@@ -74,7 +93,7 @@ class DataBase:
     file_path: str = "./music.db"
     
     def __init__(self) -> None:
-        self.conn = sqlite3.connect(self.file_path)
+        self.conn = sqlite3.connect(self.file_path, check_same_thread=False)
         self.cursor = self.conn.cursor()
         
         cmd = """
@@ -144,12 +163,11 @@ class DataBase:
                     if song.__dict__[key] == value:
                         new_songs.append(song)
             
-            if mode == "AND":
+            if mode == "AND": #limit to songs that match all restraints
                 all_songs = new_songs
+                songs_out = new_songs
             elif mode == "OR":
-                pass #dont change all_songs
-            
-            songs_out += new_songs
+                songs_out += new_songs
             
             print(key, prev_num, " -> ", len(all_songs))
             
@@ -320,11 +338,6 @@ class DataBase:
         cmd = "SELECT * FROM favorites WHERE song_id=(?)"
         self.cursor.execute(cmd, (song_id,))
         return len(self.cursor.fetchall()) > 0
-    
-    
-    
-    
-        
 
 
 db = DataBase()
@@ -351,14 +364,13 @@ async def index():
 
 @app.get("/song/{song_id}")
 async def song_player(song_id: int):
-    song = db.get_song_by_id(song_id)
     
     with open("./static/song_player.html", "r") as f:
         html = f.read()
     
     html = html.replace(
-        '"song_data_placeholder"',
-        str(song.to_json())
+        "song_id_placeholder",
+        str(song_id)
     )
     
     return HTMLResponse(html)
@@ -387,7 +399,34 @@ async def playlist_player(playlist_id: int):
 #static files
 @app.get("/static/{file_path}")
 def serve_static(file_path: str):
+
     return FileResponse(F"./static/{file_path}")
+
+@app.get("/dynamic/{file_path}/song/{song_id}")
+def serve_dynamic_song(file_path: str, song_id: int):
+    #load js file
+    #inject song data into "song_data_placeholder"
+    
+    js_str = ""
+    with open(F"./static/{file_path}", "r") as f:
+        js_str = f.read()
+    
+    song = db.get_song_by_id(song_id)
+    
+    js_str = js_str.replace(
+        '"song_data_placeholder"',
+        str(song.to_json())
+    )
+    
+    header = {
+        "Content-Type": "application/javascript"
+    }
+    
+    return HTMLResponse(js_str, headers=header)
+
+@app.get("/favicon.ico")
+def serve_favicon():
+    return FileResponse("./static/favicon.ico")
 
 
 
@@ -395,10 +434,26 @@ def serve_static(file_path: str):
 #API
 
 @app.get("/api/search")
-async def search(request: Request):
-    params = dict(request.query_params)
-    print(params)
-    songs = db.get_songs(**params)
+async def search(**params):
+
+    params = params["params"] #str
+    
+    new_params = save_eval(params)
+    
+    if "limit" in new_params:
+        limit = new_params["limit"]
+        del new_params["limit"]
+    else:
+        limit = 10
+    
+    if "mode" in new_params:
+        mode = new_params["mode"]
+        del new_params["mode"]
+    else:
+        mode = "AND"
+
+    songs = db.get_songs(**new_params, limit=limit, mode=mode)
+    print(len(songs))
     return JSONResponse([song.to_json() for song in songs])
 
 ## Songs
