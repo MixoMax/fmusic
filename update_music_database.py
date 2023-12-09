@@ -33,15 +33,9 @@ db = DataBase()
 #album_art:bytes #if we dont find any, set to empty bytes b""
 
 
-#delete all temporary spectograms
-for file in os.listdir("./temp"):
-    if file.endswith(".png"):
-        os.remove(os.path.join("./temp", file))
 
 
 def is_song(filename):
-    if "downloading" in filename:
-        return False
     
     file_endings = [".mp3", ".wav", ".flac", ".m4a", ".ogg"]
     for ending in file_endings:
@@ -128,33 +122,43 @@ def get_metadata(abs_path) -> SongEntry:
     return SongEntry(0, name, abs_path, bpm, length, kbps, genre, artist, album, album_art)
 
 
-num_entries_before = db.get_num_entries()
-print("Num entries before:", num_entries_before)
+
+all_songs = db.get_all_songs()
+
+num_before = len(all_songs)
+
+all_paths = set(
+    [song.abs_path for song in all_songs]
+)
 
 
-num_files_to_go = 0
+
+added = 0
 for root, dirs, files in os.walk(MUSIC_DIR):
-    for filename in files:
-        if is_song(filename):
-            num_files_to_go += 1
+    for file in files:
+        if is_song(file):
+            abs_path = os.path.join(root, file)
+            if "downloading" in abs_path:
+                #file is currently being downloaded and cant be opened
+                continue
+            if abs_path not in all_paths:
+                
+                try:
+                    song = get_metadata(abs_path)
+                except Exception as e:
+                    print(e, abs_path)
+                    continue
+                try:
+                    
+                    db.add_song(song)
+                    added += 1
+                except sqlite3.IntegrityError:
+                    continue
+                all_paths.add(abs_path)
+                
+                print(f"Added {added} songs", end="\r")
 
 
-i = 0
-for root, dirs, files in os.walk(MUSIC_DIR):
-    for filename in files:
-        if is_song(filename):
-            abs_path = os.path.join(root, filename)
-            song_entry = get_metadata(abs_path)
-            try:
-                db.add_song(song_entry, id_is_auto_increment=True)
-            except sqlite3.IntegrityError:
-                #print("Duplicate song entry:", song_entry)
-                pass
-            
-            i += 1
-            print(f"Added {i}/{num_files_to_go}", end="\r")
+num_after = len(db.get_all_songs())
 
-
-num_entries_after = db.get_num_entries()
-print("Num entries after:", num_entries_after)
-print("Added", num_entries_after - num_entries_before, "entries")
+print(f"Added {num_after - num_before} songs")

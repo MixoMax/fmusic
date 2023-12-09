@@ -76,6 +76,23 @@ function onload_song() {
         skip_to_percentage(percentage);
     });
 
+    //check if browser supports mediaSession APi
+    if ("mediaSession" in navigator) {
+        navigator.mediaSession.setActionHandler("play", playSong);
+        navigator.mediaSession.setActionHandler("pause", playSong);
+
+        navigator.mediaSession.setActionHandler("previoustrack", skip_to_previous_song);
+        navigator.mediaSession.setActionHandler("nexttrack", skip_to_next_song);
+
+        //set metadata
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: song_data.name,
+            artist: song_data.artist,
+            album: song_data.album
+        });
+    }
+
+
     document.addEventListener("keydown", handle_key_press);
 
     //play/pause button
@@ -359,10 +376,6 @@ function handle_key_press(e) {
         skipBack();
     } else if (e.code == "ArrowRight") {
         skipForward();
-    } else if (e.code == "MediaTrackPrevious") {
-        skip_to_previous_song();
-    } else if (e.code == "MediaTrackNext") {
-        skip_to_next_song();
     } else if (e.code == "KeyS") {
         toggleShuffle();
     } else if (e.code == "KeyR") {

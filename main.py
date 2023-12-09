@@ -35,17 +35,23 @@ def save_eval(cmd:str) -> any:
     
     forbidden_strings = [
         "import",
-        "__",
-        "os",
-        "sys",
-        "open"
+        "__"
     ]
     
     if any([string in cmd for string in forbidden_strings]):
         return None
     else:
         return eval(cmd)
-    
+
+
+def cast_to_int(value: any) -> int:
+    try:
+        return int(value)
+    except TypeError:
+        return 0
+    except ValueError:
+        return 0
+
 @dataclass
 class SongEntry:
     id:int
@@ -63,19 +69,20 @@ class SongEntry:
         return f"{self.name} by {self.artist} from {self.album} ({self.genre})"
     
     def __hash__(self) -> int:
-        return hash(f"{self.id}{self.name}{self.abs_path}{self.bpm}{self.length}{self.kbps}{self.genre}{self.artist}{self.album}")
-    
+        #we only care about name and abs_path
+        return hash((self.name, self.abs_path))
+        
     def to_json(self) -> dict:
         return {
             "id": self.id,
             "name": self.name,
             "abs_path": self.abs_path,
-            "bpm": self.bpm,
-            "length": self.length,
-            "kbps": self.kbps,
+            "bpm": cast_to_int(self.bpm),
+            "length": cast_to_int(self.length),
+            "kbps": cast_to_int(self.kbps),
             "genre": self.genre,
             "artist": self.artist,
-            "album": self.album
+            "album": str(self.album),
         }
         
 
@@ -426,6 +433,8 @@ async def dynamic_playlist(**params):
     params = params["params"] #str
     
     new_params = save_eval(params)
+    print(new_params, type(new_params))
+    
     
     if "limit" in new_params:
         limit = new_params["limit"]
@@ -636,11 +645,11 @@ def get_spectrogram(song_id: int) -> FileResponse:
     #calculate spectrogram image
     t_start = time.time()
     
-    if os.path.exists(f"./temp/spectrogram_{song_id}.png"):
+    if os.path.exists(f"./temp/{song_id}.png"):
         #return image
         t_end = time.time()
         print(f"{(t_end - t_start)*1000:.2f} ms")
-        return FileResponse(f"./temp/spectrogram_{song_id}.png")
+        return FileResponse(f"./temp/{song_id}.png")
     
     song = db.get_song_by_id(song_id)
 
@@ -664,12 +673,16 @@ def get_spectrogram(song_id: int) -> FileResponse:
     ax.imshow(S_dB, origin="lower", aspect="auto", cmap="magma")
     
     #save image to disk
-    img_path = f"./temp/spectrogram_{song_id}.png"
+    img_path = f"./temp/{song_id}.png"
     
     #load into PIL object
     buf = io.BytesIO()
     fig.savefig(buf, format="png", bbox_inches="tight", pad_inches=0)
     buf.seek(0)
+    
+    #close fig
+    plt.close(fig)
+    
     
     img = Image.open(buf)
     #make WHITE pixels transparent
