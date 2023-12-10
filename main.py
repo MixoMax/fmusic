@@ -806,32 +806,36 @@ def generate_sitemap():
     songs = db.get_all_songs()
     
     sitemap = ""
+    sitemap += "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
     sitemap += "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n"
+    
+    current_timestamp = datetime.datetime.now().strftime("%Y-%m-%d")
     
     #add index page
     url = "https://fmusic.linushorn.dev/"
-    lastmod = datetime.datetime.now().strftime("%Y-%m-%d")
     
     sitemap += f"""
     <url>
         <loc>{url}</loc>
-        <lastmod>{lastmod}</lastmod>
+        <lastmod>{current_timestamp}</lastmod>
     </url>
     """
-    
+
+    routes = [
+        "/manifest.json", "/robots.txt", "/license.txt"
+    ]
     
     for song in songs:
-        url = f"https://fmusic.linushorn.dev/song/{song.id}"
-        lastmod = datetime.datetime.now().strftime("%Y-%m-%d")
-        
-        temp_xml = f"""
+        routes.append(f"/song/{song.id}")
+
+    for route in routes:
+        url = f"https://fmusic.linushorn.dev{route}"
+        sitemap += f"""
         <url>
             <loc>{url}</loc>
-            <lastmod>{lastmod}</lastmod>
+            <lastmod>{current_timestamp}</lastmod>
         </url>
         """
-        
-        sitemap += temp_xml
     
     sitemap += "</urlset>"
     
