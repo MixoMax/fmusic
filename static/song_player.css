@@ -104,10 +104,3 @@ button:hover {
     transform: translateX(-50%) translateY(-101%);
 }
 
-#legal-disclaimer {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    margin: 25px;
-    font-size: 12px;
-}
