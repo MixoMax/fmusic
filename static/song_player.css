@@ -103,3 +103,11 @@ button:hover {
     z-index: 1;
     transform: translateX(-50%) translateY(-101%);
 }
+
+#legal-disclaimer {
+    position: absolute;
+    bottom: 0;
+    margin: 25px;
+    left: 0;
+    font-size: 12px;
+}
