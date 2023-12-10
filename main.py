@@ -666,22 +666,12 @@ def get_spectrogram(song_id: int) -> FileResponse:
     #calculate spectrogram image
     t_start = time.time()
     
-<<<<<<< Updated upstream
-    file_path = f"./temp/{song_id}.png"
-    file_path = os.path.join(os.getcwd(), file_path)
-    
-=======
     file_path = os.path.join(os.getcwd(), f"./temp/{song_id}.png")
 
->>>>>>> Stashed changes
     if os.path.exists(file_path):
         #return image
         t_end = time.time()
         print(f"{(t_end - t_start)*1000:.2f} ms")
-<<<<<<< Updated upstream
-=======
-        print("file supposedly exists")
->>>>>>> Stashed changes
         return FileResponse(file_path)
     
     song = db.get_song_by_id(song_id)
