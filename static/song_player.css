@@ -4,8 +4,8 @@
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    width: 96%;
-    height: 30vh;
+    width: max(55vw, min(800px, 100% - 50px));
+    height: max(30vh, 325px);
 }
 
 #song-title {
@@ -15,7 +15,6 @@
 
 button {
     font-size: 16px;
-    padding: 10px 20px;
     cursor: pointer;
     background-color: #3498db;
     color: #fff;
@@ -23,6 +22,7 @@ button {
     border-radius: 5px;
     outline: none;
     transition: background-color 0.3s ease;
+    padding: 10px 20px;
 }
 
 
@@ -45,6 +45,23 @@ button {
 button:hover {
     background-color: #2980b9;
 }
+
+.control-button {
+    height: 50px;
+}
+
+/* select both #skip_back_10s and #skip_forward_10s */
+/*media query: if the screen has a small x, then position:relative; top:5% else: nothing*/
+
+@media screen and (max-width: 1100px) {
+    .control-button {
+        position: relative;
+        width: min(75px, 10vw);
+        height: 50px;
+        padding: 10px 0px;
+    }
+}
+
 
 
 #progress-bar-container {

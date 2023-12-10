@@ -19,9 +19,6 @@
             background-color: #f4f4f4;
         }
 
-        #player-container {
-            width:30vw;
-        }
 
         #HomeButton {
             font-size: 50px;
@@ -60,17 +57,17 @@
         </div>
 
 
-        <button id = "restart", onclick="restart_song()">&#8635;</button>
+        <button class = "control-button", id = "restart", onclick="restart_song()">&#8635;</button>
 
-        <button id = "skip_back", onclick="skip_to_previous_song()">&#x21E4;</button>
+        <button class = "control-button", id = "skip_back", onclick="skip_to_previous_song()">&#x21E4;</button>
 
-        <button id = "skip_back_10s", onclick="skipBack()">&#8592; 10s</button>
-        <button id="play-pause-button" onclick="playSong()">&#9658</button>
-        <button id = "skip_forward_10s", onclick="skipForward()">10s &#8594;</button>
+        <button class = "control-button", id = "skip_back_10s", onclick="skipBack()">&#8592; 10s</button>
+        <button class = "control-button", id="play-pause-button" onclick="playSong()">&#9658</button>
+        <button class = "control-button", id = "skip_forward_10s", onclick="skipForward()">10s &#8594;</button>
 
-        <button id = "skip_forward", onclick="skip_to_next_song()"> &#x21E5;</button>
+        <button class = "control-button", id = "skip_forward", onclick="skip_to_next_song()"> &#x21E5;</button>
 
-        <button id = "shuffle_button", onclick="toggleShuffle()"> &#x1F500;</button>
+        <button class = "control-button", id = "shuffle_button", onclick="toggleShuffle()"> &#x1F500;</button>
     </div>
 
     <p id = "legal-disclaimer", style = "position: absolute; bottom: 0; left: 0; margin: 25px;">
