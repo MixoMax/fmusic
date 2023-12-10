@@ -15,7 +15,7 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 
 
-MUSIC_DIR = "D:/Music"
+MUSIC_DIR = "/home/server-obeli/Music"
 
 db = DataBase()
 
@@ -80,7 +80,7 @@ def get_metadata(abs_path) -> SongEntry:
     try:
         name = info_dict["TIT2"][0]
     except:
-        name = abs_path.split("\\")[-1]
+        name = abs_path.split("/")[-1]
         #remove file extension
         name =".".join(name.split(".")[:-1])
         

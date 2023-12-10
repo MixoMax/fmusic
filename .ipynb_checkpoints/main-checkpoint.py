@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import PIL.Image as Image
 
-import datetime
+
 
 from dataclasses import dataclass
 
@@ -394,18 +394,11 @@ async def song_player(song_id: int):
     
     with open("./static/song_player.html", "r") as f:
         html = f.read()
-        
-    song = db.get_song_by_id(song_id)
-        
-    replacements = {
-        "song_id_placeholder": song_id,
-        "song_name_placeholder": song.name,
-        "song_artist_placeholder": song.artist,
-        "song_length_fancy_placeholder": str(datetime.timedelta(seconds=song.length)), #mm:ss
-    }
     
-    for key, value in replacements.items():
-        html = html.replace(key, str(value))
+    html = html.replace(
+        "song_id_placeholder",
+        str(song_id)
+    )
     
     return HTMLResponse(html)
 
@@ -526,14 +519,9 @@ def serve_dynamic_song(file_path: str, song_id: int):
     
     return HTMLResponse(js_str, headers=header)
 
-
-#favicon and robot stuff
-
 @app.get("/favicon.ico")
 def serve_favicon():
     return FileResponse("./static/music.png")
-
-
 
 @app.get("/robots.txt")
 def serve_robots():
@@ -542,15 +530,6 @@ def serve_robots():
 @app.get("/license.txt")
 def serve_license():
     return FileResponse("./static/license.txt")
-
-@app.get("/manifest.json")
-def serve_manifest():
-    return FileResponse("./static/manifest.json")
-
-
-@app.get("/sitemap.xml")
-def serve_sitemap():
-    return FileResponse("./static/sitemap.xml")
 
 
 
@@ -666,22 +645,13 @@ def get_spectrogram(song_id: int) -> FileResponse:
     #calculate spectrogram image
     t_start = time.time()
     
-<<<<<<< Updated upstream
-    file_path = f"./temp/{song_id}.png"
-    file_path = os.path.join(os.getcwd(), file_path)
-    
-=======
     file_path = os.path.join(os.getcwd(), f"./temp/{song_id}.png")
 
->>>>>>> Stashed changes
     if os.path.exists(file_path):
         #return image
         t_end = time.time()
         print(f"{(t_end - t_start)*1000:.2f} ms")
-<<<<<<< Updated upstream
-=======
         print("file supposedly exists")
->>>>>>> Stashed changes
         return FileResponse(file_path)
     
     song = db.get_song_by_id(song_id)
@@ -805,51 +775,6 @@ async def get_option_frequency(column_name: str):
         options[value] += 1
     
     return JSONResponse(options)
-
-
-@app.get("/api/generate_sitemap")
-def generate_sitemap():
-    #generate sitemap and save it to disk
-    #return success
-    
-    #generate sitemap
-    songs = db.get_all_songs()
-    
-    sitemap = ""
-    sitemap += "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n"
-    
-    #add index page
-    url = "https://fmusic.linushorn.dev/"
-    lastmod = datetime.datetime.now().strftime("%Y-%m-%d")
-    
-    sitemap += f"""
-    <url>
-        <loc>{url}</loc>
-        <lastmod>{lastmod}</lastmod>
-    </url>
-    """
-    
-    
-    for song in songs:
-        url = f"https://fmusic.linushorn.dev/song/{song.id}"
-        lastmod = datetime.datetime.now().strftime("%Y-%m-%d")
-        
-        temp_xml = f"""
-        <url>
-            <loc>{url}</loc>
-            <lastmod>{lastmod}</lastmod>
-        </url>
-        """
-        
-        sitemap += temp_xml
-    
-    sitemap += "</urlset>"
-    
-    #save sitemap
-    with open("./static/sitemap.xml", "w") as f:
-        f.write(sitemap)
-    
-    return JSONResponse({"success": True})
 
 
 
