@@ -1,6 +1,6 @@
 import os
 import sqlite3
-from main import DataBase, SongEntry
+from fmusicCore import DataBase, SongEntry
 
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3, APIC, error

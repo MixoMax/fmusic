@@ -3,98 +3,187 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="keywords" content="fmusic, Linus Horn, Music"/>
-    <meta name="description" content="fmusic is an Open Source Music Player and organizer developed by Linus Horn"/>
     <title>fmusic</title>
-
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 25px;
-            background-color: #f4f4f4;
-        }
-        h1 {
-            top: 0;
-            left: 0;
-            font-size: 50px;
-        }
-        p {
-            font-size: 20px;
-        }
-
-
-        input[type=text] {
-            width: 50%;
-            height: 50px;
-            padding: 12px 20px;
-            margin: 8px 0;
-            box-sizing: border-box;
-        }
-
-        button {
-            height: 50px;
-            font-size: 16px;
-            padding: 10px 20px;
-            cursor: pointer;
-            background-color: #3498db;
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-            outline: none;
-            transition: background-color 0.3s ease;
-        }
-
-        button:hover {
-            background-color: #2980b9;
-        }
-
-    </style>
-
-
-</head>
-<body>
-    <h1>fmusic</h1>
-    <p>fmusic is an Open Source Music Player and organizer developed by <a href="https://Github.com/MixoMax">MixoMax</a></p>
-
-    <p>to get started, search for something:</p>
-
-    <input type="text" id="search" placeholder="search for something (exact match)">
-    <button id="searchButton" onclick="search()">search</button>
-
-    <br>
-
-    <p>or, you can browse the <a href="/docs"> api documentation page</a></p>
-
-    <p>or, you can browse the <a href="/playlist/0"> favorites playlist</a></p>
-
-    <p>or, you can listen to a random song <a href="/song/random">here</a></p>
-
-
-
-    <p id = "legal-disclaimer", style = "position: absolute; bottom: 0; left: 0; margin: 25px;">
-        (c) Linus Horn 2023, for more details see the <a href = "/license.txt">License</a>
-    </p>
+    <script src="https://unpkg.com/htmx.org/dist/htmx.js"></script>
 
     <script>
-        function search() {
-            var search = document.getElementById("search").value;
-            if (search == "") {
-                return;
-            }
-            let url = "/dynamic_playlist_full_text_search?q=" + search;
-
-            window.location.href = url;
+        function play_pause_song(song_id) {
+            console.log("play_pause_song: " + song_id);
+            let url = "/api/song/" + song_id; //mp3 file
+            let audio = document.getElementById("music_player").getElementsByTagName("audio")[0];
+            let source = audio.getElementsByTagName("source")[0];
+            source.src = url;
+            audio.load();
+            audio.play();
         }
 
-        document.addEventListener("keyup", function(event) {
-            if (event.keyCode === 13) {
-                event.preventDefault();
-                search();
+        async function add_remove_favorite(song_id) {
+            console.log("add_remove_favorite: " + song_id);
+
+            let url = "/api/favorites/toggle/" + song_id;
+            fetch (url)
+                .then(response => response.json())
+                .then(data => {
+                    //await data.json();
+                    var is_favorite = Boolean(data.is_favorite);
+                    console.log("is_favorite: " + is_favorite);
+
+                    let img = document.getElementById("favorite_" + song_id);
+                    if (is_favorite) {
+                        img.src = "/static/heart_filled.svg";
+                        heart_explosion();
+                    } else {
+                        img.src = "/static/heart_empty.svg";
+                    }
+                });
+        }
+
+        function heart_explosion() {
+            //heart explosion animation
+            //cursor is the origin
+
+            //TODO needs to be fixed
+
+            let num_hearts = 10;
+            let heart_size = 50;
+            let max_distance = 100;
+            
+            for (let i = 0; i < num_hearts; i++) {
+                let heart = document.createElement("img");
+                heart.src = "/static/heart_filled.svg";
+                heart.style.position = "absolute";
+                heart.style.width = heart_size + "px";
+                heart.style.height = heart_size + "px";
+                heart.style.left = x + "px";
+                heart.style.top = y + "px";
+                heart.style.transition = "all 1s ease-in-out";
+                heart.style.zIndex = 1000;
+                document.body.appendChild(heart);
+
+                let dx = Math.random() * max_distance * 2 - max_distance;
+                let dy = Math.random() * max_distance * 2 - max_distance;
+
+                heart.style.left = (x + dx) + "px";
+                heart.style.top = (y + dy) + "px";
+                heart.style.opacity = 0;
             }
-        });
+
+        }
+
+
     </script>
+
+    <style>
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 75%;
+            margin: 0 auto;
+
+        }
+
+        #search_results {
+            height: 55vh;
+            overflow: scroll;
+            width: 55vw;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            width: 100%;
+        }
+
+        li {
+            list-style-type: none;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5em;
+        }
+
+        .song-entry {
+            border: 1px solid black;
+            border-radius: 0.5em;
+            margin: 0.5em;
+            width: 90%;
+        }
+
+        li div {
+            padding: 0.5em;
+            width: 100%;
+        }
+
+        .song-favorite {
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-end;
+            align-items: center;
+
+            width: 2em;
+            height: 2em;
+        }
+
+        .favorite-button {
+            width: 100%;
+            height: 100%;
+        }
+
+        .favorite-icon {
+            width: 2em;
+            height: 2em;
+        }
+
+
+    </style>
+</head>
+<body>
+    
+    <div id="app">
+        <h1>fmusic</h1>
+        
+        <!--search bar-->
+        <!--url: /api/full_search?q=foo -> [{"id", "name", "artist", "album", "genre", "bpm", "length", "kbps", "abs_path", "album_art"}, ...]-->
+
+        <form hx-get="/htmx/full_search" hx-target="#search_results">
+            <input type="text" name="q" placeholder="search">
+            <input type="submit" value="search">
+        </form>
+
+        <!--search results-->
+        <div id="search_results">
+            <!--search results will be inserted here-->
+            <!--<li class="song-entry">
+                    <div class="song-play-pause">
+                        <button onclick="play_pause_song({self.id})">play</button>
+
+                    </div>
+                    <div class="song-name">
+                        {self.name}
+                    </div>
+                    <div class="song-artist">
+                        {self.artist}
+                    </div>
+                    <div class="song-album">
+                        {self.album}
+                    </div>
+                    <div class="song-genre">
+                        {self.genre}
+                    </div>
+                </li>
+            -->
+        </div>
+
+        <!--music player-->
+        <div id="music_player">
+            <audio controls>
+                <source src="">
+            </audio>
+        </div>
+    </div>
 </body>
 </html>
