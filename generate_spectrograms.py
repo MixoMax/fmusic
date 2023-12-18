@@ -61,7 +61,12 @@ songs_left = upper_limit
 for i in range(1, upper_limit+1):
     t_start = time.time()
     song = db.get_song_by_id(i)
-    calculate_spectogram(song)
+    try:
+        calculate_spectogram(song)
+    except: #noqa
+        print(f"Error with {song.id}")
+        songs_left -= 1
+        continue
     songs_left -= 1
     t_end = time.time()
     t_delta = t_end - t_start
