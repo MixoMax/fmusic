@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
+from fastapi.requests import Request
 import uvicorn
 
 import librosa
@@ -10,6 +11,9 @@ import PIL.Image as Image
 import datetime
 
 from dataclasses import dataclass
+
+from get_metadata_core import get_metadata, MUSIC_DIR
+import zipfile
 
 import sqlite3
 import os
@@ -409,6 +413,12 @@ async def song_player(song_id: int):
     
     return HTMLResponse(html)
 
+@app.get("/upload")
+async def upload_page():
+    with open("./static/uploadForm.html", "r") as f:
+        html = f.read()
+    return HTMLResponse(html)
+
 
 
 @app.get("/playlist/{playlist_id}")
@@ -496,6 +506,8 @@ async def dynamic_playlist_full_text_search(q: str):
     )
     
     return HTMLResponse(html)
+
+
 
 
 #static files
@@ -619,6 +631,126 @@ async def get_song_art(song_id: int):
     song = db.get_song_by_id(song_id)
     return FileResponse(song.album_art)
 
+@app.post("/api/song/upload")
+async def upload_song(request: Request) -> JSONResponse:
+    #uploads an mp3 file
+    #returns success
+    
+    #get file
+    form = await request.form()
+    file = form["file"] #UploadedFile
+    
+    #to bytes
+    audio_file = await file.read()
+    audio_file = bytes(audio_file)
+
+    
+    
+    #save file to disk
+    file_path = os.path.join(MUSIC_DIR, "download", file.filename)
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    
+    with open(file_path, "wb") as f:
+        print(type(audio_file))
+        f.write(audio_file)
+    
+    abs_path = os.path.abspath(file_path)
+    
+    data = get_metadata(abs_path) #dict
+    
+    song = SongEntry(
+        id=0,
+        name=data["name"],
+        abs_path=abs_path,
+        bpm=data["bpm"],
+        length=data["length"],
+        kbps=data["kbps"],
+        genre=data["genre"],
+        artist=data["artist"],
+        album=data["album"],
+        album_art=data["album_art"]
+    )
+    
+    try:
+        db.add_song(song)
+    except:
+        #song already exists
+        return JSONResponse({"success": False})
+    return JSONResponse({"success": True})
+
+@app.post("/api/song/upload/many")
+async def upload_many_songs(request: Request) -> JSONResponse:
+    #upload a zip or gzip file containing many mp3 files
+    #returns success
+    
+    print("uploading many songs")
+    
+    #get file
+    form = await request.form()
+    file = form["file"] #UploadedFile
+    
+    #to bytes
+    zip_file = await file.read()
+    zip_file = bytes(zip_file)
+    
+    #save file to disk
+    file_path = os.path.join(MUSIC_DIR, "download", file.filename)
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    
+    with open(file_path, "wb") as f:
+        f.write(zip_file)
+    
+    print(1)
+    
+    #extract zip file
+    with zipfile.ZipFile(file_path, "r") as zip_ref:
+        zip_ref.extractall(os.path.join(os.path.dirname(file_path), file.filename.split(".")[0]))
+    
+    print(2)
+    
+    #delete zip file
+    os.remove(file_path)
+    
+    print(3)
+    
+    #get all files in directory
+    files = []
+    file_path = os.path.join(os.path.dirname(file_path), file.filename.split(".")[0])
+    for root, dirs, files in os.walk(file_path):
+        for file in files:
+            files.append(os.path.join(root, file))
+    
+    print(4)
+    
+    #add all files to database
+    for file in files:
+        data = get_metadata(file)
+        song = SongEntry(
+            id=0,
+            name=data["name"],
+            abs_path=file,
+            bpm=data["bpm"],
+            length=data["length"],
+            kbps=data["kbps"],
+            genre=data["genre"],
+            artist=data["artist"],  
+            album=data["album"],
+            album_art=data["album_art"]
+        )
+        
+        try:
+            db.add_song(song)
+        except:
+            #song already exists
+            continue
+    
+    print(5)
+
+    return JSONResponse({"success": True})
+    
+    
+    
+    
 ## Playlists
 
 @app.get("/api/playlist/{playlist_id}")

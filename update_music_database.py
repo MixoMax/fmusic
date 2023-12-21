@@ -1,6 +1,7 @@
 import os
 import sqlite3
 from main import DataBase, SongEntry
+from get_metadata_core import get_metadata, MUSIC_DIR
 
 from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3, APIC, error
@@ -15,7 +16,7 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 
 
-MUSIC_DIR = "/home/server-obeli/Music"
+
 
 db = DataBase()
 
@@ -44,84 +45,6 @@ def is_song(filename):
     else:
         return False
 
-def get_metadata(abs_path) -> SongEntry:
-    #use mutagen to get metadata
-    
-    file_extension = abs_path.split(".")[-1]
-    
-    match file_extension:
-        case "mp3":
-            audio = MP3(abs_path)
-        case "wav":
-            audio = WAVE(abs_path)
-        case "flac":
-            audio = FLAC(abs_path)
-        case "m4a":
-            audio = M4A(abs_path)
-        case "ogg":
-            audio = OggVorbis(abs_path)
-        case _:
-            raise Exception("Unknown file extension", file_extension)
-    
-    info_dict = audio.tags
-    
-    #print(info_dict.keys()) # ['TIT2', 'TPE1', 'TALB', 'TCON', 'TRCK', 'APIC:text_c_03']
-
-    #TIT2: -> name
-    #TPE1: -> artist
-    #TALB: -> album
-    #TCON: -> genre
-    #TRCK: -> track number
-    #APIC: -> album art
-    
-    length = int(audio.info.length)
-    kbps = int(audio.info.bitrate/1000)
-    
-    try:
-        name = info_dict["TIT2"][0]
-    except:
-        name = abs_path.split("/")[-1]
-        #remove file extension
-        name =".".join(name.split(".")[:-1])
-        
-        file_extension = abs_path.split(".")[-1]
-        if file_extension == "flac":
-            pass
-        else:
-            print("no name found, using filename:", name, "file_extension:", file_extension)
-
-    
-    try:
-        artist = info_dict["TPE1"].text[0]
-    except:
-        artist = "Unknown"
-    
-    try:
-        album = info_dict["TALB"].text[0]
-    except:
-        album = "Unknown"
-
-        
-    try:
-        genre = info_dict["TCON"].text[0]
-    except:
-        genre = "Unknown"
-
-        
-    try:
-        album_art = info_dict["APIC"].data
-        album_art = bytes(album_art)
-    except:
-        album_art = b""
-    
-    try:
-        bpm = info_dict["TBPM"][0]
-    except:
-        bpm = 0
-    
-    return SongEntry(0, name, abs_path, bpm, length, kbps, genre, artist, album, album_art)
-
-
 
 all_songs = db.get_all_songs()
 
@@ -144,7 +67,21 @@ for root, dirs, files in os.walk(MUSIC_DIR):
             if abs_path not in all_paths:
                 
                 try:
-                    song = get_metadata(abs_path)
+                    data = get_metadata(abs_path) #dict
+                    
+                    song = SongEntry(
+                        id=0,
+                        name=data["name"],
+                        abs_path=abs_path,
+                        bpm=data["bpm"],
+                        length=data["length"],
+                        kbps=data["kbps"],
+                        genre=data["genre"],
+                        artist=data["artist"],
+                        album=data["album"],
+                        album_art=data["album_art"]
+                    )
+                    
                 except Exception as e:
                     print(e, abs_path)
                     continue
