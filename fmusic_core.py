@@ -205,7 +205,11 @@ class DataBase:
     def get_song_by_id(self, song_id: int) -> SongEntry:
         cmd = F"SELECT * FROM songs WHERE id={song_id}"
         self.cursor.execute(cmd)
-        return SongEntry(*self.cursor.fetchone())
+        data = self.cursor.fetchone()
+        if data is None:
+            return None
+        else:
+            return SongEntry(*data)
     
     def get_songs_by_id(self, song_id: int, limit: int = 10, upper_limit: int = None) -> list[SongEntry]:
         if upper_limit is None:
