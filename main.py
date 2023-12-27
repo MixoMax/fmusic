@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.requests import Request
+from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 import fmusic_core as fcore
@@ -12,176 +13,38 @@ import datetime
 db = fcore.DataBase()
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
+
+
+
 MUSIC_DIR = fcore.MUSIC_DIR
 
 
-#html + frontend
+#React Frontend
+
+
 @app.get("/")
-async def index():
-    with open("./static/index.html", "r") as f:
-        html = f.read()
-    return HTMLResponse(html)
-
-@app.get("/song/random")
-async def random_song_player():
-    song_id = random.randint(1, db.get_num_entries())
+async def serve_index():
+    return FileResponse("./static/index.html")
     
-    with open("./static/song_player.html", "r") as f:
-        html = f.read()
     
-    html = html.replace(
-        "song_id_placeholder",
-        str(song_id)
-    )
-    
-    return HTMLResponse(html)
-
-@app.get("/song/{song_id}")
-async def song_player(song_id: int):
-    
-    with open("./static/song_player.html", "r") as f:
-        html = f.read()
-        
-    song = db.get_song_by_id(song_id)
-        
-    replacements = {
-        "song_id_placeholder": song_id,
-        "song_name_placeholder": song.name,
-        "song_artist_placeholder": song.artist,
-        "song_length_fancy_placeholder": str(datetime.timedelta(seconds=song.length)), #mm:ss
-    }
-    
-    for key, value in replacements.items():
-        html = html.replace(key, str(value))
-    
-    return HTMLResponse(html)
-
-@app.get("/upload")
-async def upload_page():
-    with open("./static/uploadForm.html", "r") as f:
-        html = f.read()
-    return HTMLResponse(html)
-
-
-
-@app.get("/playlist/{playlist_id}")
-async def playlist_player(playlist_id: int):
-    if playlist_id == 0:
-        #playlist_id 0 is reserved for favorites
-        playlist = db.get_favorite_playlist()
-    else:
-        playlist = db.get_playlist(playlist_id)
-
-    with open("./static/playlist_player.html", "r") as f:
-        html = f.read()
-    
-    html = html.replace(
-        '"playlist_data_placeholder"',
-        str(playlist.to_json())
-    )
-    
-    return HTMLResponse(html)
-
-
-#dynamically generated playlist
-@app.get("/dynamic_playlist")
-async def dynamic_playlist(**params):
-    #url = /dynamic_playlist?params={"limit": 10, "mode": "AND", "playlist_name": "Dynamic Playlist", "bpm": (100, 200), "genre": "Rock", "artist": "AC/DC"}
-    
-    #get playlist by params
-    
-    params = params["params"] #str
-    
-    new_params = fcore.save_eval(params)
-    print(new_params, type(new_params))
-
-    #inject songs into playlist_player.html
-    with open("./static/playlist_player.html", "r") as f:
-        html = f.read()
-    
-    playlist = db.dynamic_playlist(new_params)
-    
-    html = html.replace(
-        '"playlist_data_placeholder"',
-        str(playlist.to_json())
-    )
-    
-    return HTMLResponse(html)
-
-
-@app.get("/dynamic_playlist_full_text_search")
-async def dynamic_playlist_full_text_search(q: str):
-    #url = /dynamic_playlist_full_text_search?q=hello
-    
-    #inject songs into playlist_player.html
-    with open("./static/playlist_player.html", "r") as f:
-        html = f.read()
-
-    playlist = db.playlist_from_full_text_search(q)
-    
-    html = html.replace(
-        '"playlist_data_placeholder"',
-        str(playlist.to_json())
-    )
-    
-    return HTMLResponse(html)
 
 
 
 
-#static files
 @app.get("/static/{file_path}")
-def serve_static(file_path: str):
-
-    return FileResponse(F"./static/{file_path}")
-
-@app.get("/dynamic/{file_path}/song/{song_id}")
-def serve_dynamic_song(file_path: str, song_id: int):
-    #load js file
-    #inject song data into "song_data_placeholder"
-    
-    js_str = ""
-    with open(F"./static/{file_path}", "r") as f:
-        js_str = f.read()
-    
-    song = db.get_song_by_id(song_id)
-    
-    js_str = js_str.replace(
-        '"song_data_placeholder"',
-        str(song.to_json())
-    )
-    
-    header = {
-        "Content-Type": "application/javascript"
-    }
-    
-    return HTMLResponse(js_str, headers=header)
-
-
-#favicon and robot stuff
+async def serve_static(file_path: str):
+    return FileResponse(f"./static/{file_path}")
 
 @app.get("/favicon.ico")
-def serve_favicon():
+async def serve_favicon():
     return FileResponse("./static/music.png")
 
-
-
-@app.get("/robots.txt")
-def serve_robots():
-    return FileResponse("./static/robots.txt")
-
-@app.get("/license.txt")
-def serve_license():
-    return FileResponse("./static/license.txt")
-
-@app.get("/manifest.json")
-def serve_manifest():
-    return FileResponse("./static/manifest.json")
-
-
-@app.get("/sitemap.xml")
-def serve_sitemap():
-    return FileResponse("./static/sitemap.xml")
 
 
 
@@ -189,7 +52,7 @@ def serve_sitemap():
 #API
 
 @app.get("/api/search")
-async def search(**params):
+def search(**params):
     #param options:
     #limit: int
     #mode: str (AND or OR)
@@ -224,7 +87,7 @@ async def search(**params):
 
 
 @app.get("/api/full_search")
-async def full_text_search(q:str) -> list[fcore.SongEntry]:
+def full_text_search(q:str) -> list[fcore.SongEntry]:
     #url = /api/full_search?q=hello
     
     #searches all columns for q
@@ -236,17 +99,17 @@ async def full_text_search(q:str) -> list[fcore.SongEntry]:
 ## Songs
 
 @app.get("/api/song/{song_id}")
-async def get_song(song_id: int):
+def get_song(song_id: int):
     song = db.get_song_by_id(song_id)
     return FileResponse(song.abs_path)
 
 @app.get("/api/song/{song_id}/info")
-async def get_song_info(song_id: int):
+def get_song_info(song_id: int):
     song = db.get_song_by_id(song_id)
     return JSONResponse(song.to_json())
 
 @app.get("/api/song/{song_id}/art")
-async def get_song_art(song_id: int):
+def get_song_art(song_id: int):
     song = db.get_song_by_id(song_id)
     return FileResponse(song.album_art)
 
@@ -303,40 +166,35 @@ async def upload_song(request: Request) -> JSONResponse:
 ## Playlists
 
 @app.get("/api/playlist/{playlist_id}")
-async def get_playlist(playlist_id: int):
+def get_playlist(playlist_id: int):
     playlist = db.get_playlist(playlist_id)
     return JSONResponse(playlist.to_json())
 
 @app.get("/api/playlist/{playlist_id}/art")
-async def get_playlist_art(playlist_id: int):
+def get_playlist_art(playlist_id: int):
     playlist = db.get_playlist(playlist_id)
     return FileResponse(playlist.playlist_art)
 
-@app.get("/api/playlist/{playlist_id}/songs")
-async def get_playlist_songs(playlist_id: int):
-    playlist = db.get_playlist(playlist_id)
-    return JSONResponse([song.to_json() for song in playlist.songs])
+@app.post("/api/playlist/{playlist_id}/add/{song_id}")
+def add_to_playlist(playlist_id: int, song_id: int):
+    #url: /api/playlist/1/add?song_id=1
+    
+    db.add_to_playlist(playlist_id, song_id)
 
-## favorites
-
-@app.get("/api/favorites")
-async def get_favorites():
-    favorites = db.get_favorites()
-    return JSONResponse([song.to_json() for song in favorites])
-
-@app.get("/api/favorites/add/{song_id}")
-async def add_to_favorites(song_id: int):
-    db.add_to_favorite(song_id)
+@app.post("/api/playlist/create")
+def create_playlist(name: str):
+    db.create_playlist(name)
     return JSONResponse({"success": True})
 
-@app.get("/api/favorites/remove/{song_id}")
-async def remove_from_favorites(song_id: int):
-    db.remove_from_favorite(song_id)
+@app.delete("/api/playlist/{playlist_id}/delete")
+def delete_playlist(playlist_id: int):
+    db.delete_playlist(playlist_id)
     return JSONResponse({"success": True})
 
-@app.get("/api/favorites/is_favorite/{song_id}")
-async def is_favorite(song_id: int):
-    return JSONResponse({"is_favorite": db.is_favorite(song_id)})
+@app.delete("/api/playlist/{playlist_id}/remove/{song_id}")
+def remove_from_playlist(playlist_id: int, song_id: int):
+    db.remove_from_playlist(playlist_id, song_id)
+    return JSONResponse({"success": True})
 
 
 
@@ -350,13 +208,13 @@ def get_spectrogram(song_id: int) -> FileResponse:
 
 ## general
 
-@app.get("/api/get_num_songs")
-async def get_num_songs():
+@app.get("/api/num_songs")
+def get_num_songs():
     return JSONResponse({"num_songs": db.get_num_entries()})
 
 
 @app.get("/api/get_options")
-async def get_options_for_columns(column_name: str):
+def get_options_for_columns(column_name: str):
     #return a set of all values for a column
     #except for id, abs_path, name and album_art
     if column_name in ["id", "abs_path", "name", "album_art"]:
@@ -374,7 +232,7 @@ async def get_options_for_columns(column_name: str):
     return JSONResponse({"options": list(options)})
 
 @app.get("/api/get_options_new")
-async def get_options_for_columns_new(column_name: str):
+def get_options_for_columns_new(column_name: str):
     #return a set of all values for a column
     #except for id, abs_path, name and album_art
     if column_name in ["id", "abs_path", "name", "album_art"]:
@@ -395,7 +253,7 @@ async def get_options_for_columns_new(column_name: str):
     return JSONResponse({"options": list(options)})
 
 @app.get("/api/get_option_frequency")
-async def get_option_frequency(column_name: str):
+def get_option_frequency(column_name: str):
     #return a dict of all values for a column and their frequency
     #except for id, abs_path, name and album_art
     if column_name in ["id", "abs_path", "name", "album_art"]:
@@ -462,7 +320,7 @@ def generate_sitemap():
     with open("./static/sitemap.xml", "w") as f:
         f.write(sitemap)
     
-    return JSONResponse({"success": True})
+    return JSONResponse({"success": True, "path": "./static/sitemap.xml"})
 
 
 

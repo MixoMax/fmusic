@@ -1,0 +1,179 @@
+
+#AppContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+}
+
+a {
+    color: black;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: left;
+    width: 100vw;
+
+    padding: 1rem;
+    border-bottom: 1px solid black;
+    
+}
+
+header #HomeLink {
+    font-size: 4rem;
+    font-weight: bold;
+    font-family: Arial, Helvetica, sans-serif;
+    margin-right: 1rem;
+    height: 5rem;
+
+    cursor: pointer;
+
+    transition: 0.2s;
+}
+
+header #Search {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: left;
+
+    width: 100%;
+    height: 5rem;
+}
+
+header #Search input {
+    border: 1px solid black;
+    border-radius: 0.5rem;
+
+    width: 80vw;
+    max-width: 8000px;
+    height: 3rem;
+}
+
+header #Search button {
+    border: 1px solid black;
+    border-radius: 0.5rem;
+
+    margin-left: 1rem;
+
+    width: 3rem;
+    height: 3rem;
+}
+
+
+#mainContainer {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: left;
+    width: 100vw;
+    height: 60vh;
+}
+
+#mainContainer #PlayListList {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 20vw;
+    height: 100%;
+
+    border: 1px solid black;
+}
+
+#mainContainer #PlaylistOrSearchResults {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 80vw;
+    height: 100%;
+
+    border: 1px solid black;
+}
+
+
+
+#SongPlayer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100vw;
+    height: 25vh;
+
+    border: 1px solid black;
+}
+
+#SongPlayer #SongTitle {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 10%;
+}
+
+#SongPlayer #SongTitle h1 {
+    font-size: 2rem;
+    font-weight: bold;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+#SongPlayer #SongTitle #favoriteButton {
+    right: 0;
+    margin-left: 1.5rem;
+    width: 3rem;
+    height: 3rem;
+}
+
+
+#SongPlayer #Spectrogram {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#SongPlayer #ProgressBarContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 10%;
+}
+
+#SongPlayer #ProgressBarContainer #ProgressBar {
+    width: 80%;
+    height: 1rem;
+}
+
+#SongPlayer #ProgressBarContainer #ProgressTime {
+    width: 80%;
+    height: 1rem;
+}
+
+#SongPlayer #SongControls {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 10%;
+}
+
+#SongPlayer #SongControls button {
+    margin: 0.5rem;
+    width: 3rem;
+    height: 3rem;
+}

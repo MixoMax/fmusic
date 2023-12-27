@@ -3,98 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="keywords" content="fmusic, Linus Horn, Music"/>
-    <meta name="description" content="fmusic is an Open Source Music Player and organizer developed by Linus Horn"/>
     <title>fmusic</title>
-
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 25px;
-            background-color: #f4f4f4;
-        }
-        h1 {
-            top: 0;
-            left: 0;
-            font-size: 50px;
-        }
-        p {
-            font-size: 20px;
-        }
-
-
-        input[type=text] {
-            width: 50%;
-            height: 50px;
-            padding: 12px 20px;
-            margin: 8px 0;
-            box-sizing: border-box;
-        }
-
-        button {
-            height: 50px;
-            font-size: 16px;
-            padding: 10px 20px;
-            cursor: pointer;
-            background-color: #3498db;
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-            outline: none;
-            transition: background-color 0.3s ease;
-        }
-
-        button:hover {
-            background-color: #2980b9;
-        }
-
-    </style>
-
-
+    <link rel="stylesheet" href="/static/index.css">
 </head>
 <body>
-    <h1>fmusic</h1>
-    <p>fmusic is an Open Source Music Player and organizer developed by <a href="https://Github.com/MixoMax">MixoMax</a></p>
 
-    <p>to get started, search for something:</p>
+    <div id="appContainer">
 
-    <input type="text" id="search" placeholder="search for something (exact match)">
-    <button id="searchButton" onclick="search()">search</button>
+        <header>
+            <div id="HomeLink">
+                <a href="/">fmusic</a>
+            </div>
 
-    <br>
+            <div id="Search">
+                <input type="text" placeholder="Search">
+                <button type="submit">Search</button>
+            </div>
+        </header>
 
-    <p>or, you can browse the <a href="/docs"> api documentation page</a></p>
+        <div id="mainContainer">
+            <div id="PlayListList">
+                <!--List of Playlists-->
+                <ul>
+                    <li>Playlist 1</li>
+                    <li>Playlist 2</li>
+                    <li>Playlist 3</li>
+                </ul>
+                
+            </div>
+            <div id="PlaylistOrSearchResults">
+                <!--Playlist or Search Results-->
 
-    <p>or, you can browse the <a href="/playlist/0"> favorites playlist</a></p>
+                <ul>
+                    <li>Song 1</li>
+                    <li>Song 2</li>
+                    <li>Song 3</li>
+                </ul>
+            </div>
+        </div>
 
-    <p>or, you can listen to a random song <a href="/song/random">here</a></p>
+        <div id="SongPlayer">
+            <div id="SongTitle">
+                <h1>Song Title</h1>
+                <button id="favoriteButton">Favorite</button>
+            </div>
+            <div id="Spectrogram">
+                <img src="/api/spectrogram/1">
+                <div id="SpectroGramBar"></div>
+            </div>
+            <div id="ProgressBarContainer">
+                <div id="ProgressBar"></div>
+                <div id="ProgressTime"></div>
+            </div>
 
+            <div id="SongControls">
+                <button id="PlayPauseButton">Play</button>
+                <button id="NextButton">Next</button>
+                <button id="PreviousButton">Previous</button>
+        </div>
 
-
-    <p id = "legal-disclaimer", style = "position: absolute; bottom: 0; left: 0; margin: 25px;">
-        (c) Linus Horn 2023, for more details see the <a href = "/license.txt">License</a>
-    </p>
-
-    <script>
-        function search() {
-            var search = document.getElementById("search").value;
-            if (search == "") {
-                return;
-            }
-            let url = "/dynamic_playlist_full_text_search?q=" + search;
-
-            window.location.href = url;
-        }
-
-        document.addEventListener("keyup", function(event) {
-            if (event.keyCode === 13) {
-                event.preventDefault();
-                search();
-            }
-        });
-    </script>
+    </div>
+    
 </body>
 </html>
