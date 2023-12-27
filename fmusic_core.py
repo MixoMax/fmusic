@@ -278,13 +278,28 @@ class DataBase:
     
     def get_all_songs(self, limit: int = None) -> list[SongEntry]:
         if limit is not None:
-            cmd = F"SELECT * FROM songs LIMIT {limit}"
+            cmd = f"SELECT * FROM songs LIMIT {limit}"
         else:
             cmd = "SELECT * FROM songs"
             
         self.cursor.execute(cmd)
         return [SongEntry(*song) for song in self.cursor.fetchall()]
     
+    def get_random_song(self, recursion_idx: int = 0) -> SongEntry:
+        
+        if recursion_idx > 10:
+            raise RecursionError("Could not find a random song")
+        
+        max_id = self.get_num_entries()
+        song_id = np.random.randint(1, max_id)
+        
+        cmd = F"SELECT * FROM songs WHERE id={song_id}"
+        self.cursor.execute(cmd)
+        data = self.cursor.fetchone()
+        if data is None:
+            return self.get_random_song(recursion_idx + 1)
+        else:
+            return SongEntry(*data)
     
     
     def add_song(self, song: SongEntry, id_is_auto_increment: bool = True) -> None:
@@ -315,7 +330,6 @@ class DataBase:
         
         return PlaylistEntry(id, name, playlist_art, songs)
         
-    
     def add_playlist(self, playlist: PlaylistEntry) -> None:
         
         song_ids = [song.id for song in playlist.songs]
@@ -344,7 +358,62 @@ class DataBase:
         self.cursor.execute(cmd, (playlist.name, playlist.playlist_art, song_ids))
         self.conn.commit()
 
+    def dynamic_playlist(self, params:dict) -> PlaylistEntry:
+        #params = {
+        #   "mode": ["AND", "OR"],
+        #   "limit": int,
+        #   "bpm": (int, int) or int,
+        #   "length": (int, int) or int,
+        #   "kbps": (int, int) or int,
+        #   "genre": str,
+        #   "artist": str,
+        #   "album": str,
+        #   "name": str
+        #}
+        
+        mode = params.get("mode", "AND")
+        
+        #get all songs
+        all_songs = self.get_all_songs()
+        
+        if mode == "OR":
+            songs_out = []
+            for key, value in params.items():
+                for song in all_songs:
+                    if type(value) == tuple:
+                        if song.__dict__[key] >= value[0] and song.__dict__[key] <= value[1]:
+                            songs_out.append(song)
+                    else:
+                        if song.__dict__[key] == value:
+                            songs_out.append(song)
+        else:
+            songs_out = all_songs
+            for key, value in params.items():
+                new_songs = []
+                for song in all_songs:
+                    if type(value) == tuple:
+                        if song.__dict__[key] >= value[0] and song.__dict__[key] <= value[1]:
+                            new_songs.append(song)
+                    else:
+                        if song.__dict__[key] == value:
+                            new_songs.append(song)
+                songs_out = new_songs
+        
+        #limit to params["limit"] songs
+        limit = params.get("limit", -1)
+        songs_out = list(set(songs_out))[:limit]
+        
+        return PlaylistEntry(0, "Dynamic Playlist", None, songs_out)
 
+    def playlist_from_full_text_search(self, q: str) -> PlaylistEntry:
+        #searches all columns for q
+        #returns a list of SongEntry objects
+        #that contain q in one of their columns
+        
+        songs = self.full_text_search(q)
+        return PlaylistEntry(0, "Search Results", None, songs)
+    
+    
 
     def add_to_favorite(self, song_id: int) -> None:
         cmd = "INSERT INTO favorites VALUES (?, ?)"

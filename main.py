@@ -94,34 +94,12 @@ async def dynamic_playlist(**params):
     
     new_params = fcore.save_eval(params)
     print(new_params, type(new_params))
-    
-    
-    if "limit" in new_params:
-        limit = new_params["limit"]
-        del new_params["limit"]
-    else:
-        limit = None
-        
-    if "mode" in new_params:
-        mode = new_params["mode"]
-        del new_params["mode"]
-    else:
-        mode = "AND"
-        
-    if "playlist_name" in new_params:
-        playlist_name = new_params["playlist_name"]
-        del new_params["playlist_name"]
-    else:
-        playlist_name = "Dynamic Playlist"
-    
-    
-    songs = db.get_songs(**new_params, limit=limit, mode=mode)
-    
+
     #inject songs into playlist_player.html
     with open("./static/playlist_player.html", "r") as f:
         html = f.read()
     
-    playlist = fcore.PlaylistEntry(0, playlist_name, None, songs)
+    playlist = db.dynamic_playlist(new_params)
     
     html = html.replace(
         '"playlist_data_placeholder"',
@@ -134,14 +112,12 @@ async def dynamic_playlist(**params):
 @app.get("/dynamic_playlist_full_text_search")
 async def dynamic_playlist_full_text_search(q: str):
     #url = /dynamic_playlist_full_text_search?q=hello
-
-    songs = db.full_text_search(q)
     
     #inject songs into playlist_player.html
     with open("./static/playlist_player.html", "r") as f:
         html = f.read()
-    
-    playlist = fcore.PlaylistEntry(0, "Search Results", None, songs)
+
+    playlist = db.playlist_from_full_text_search(q)
     
     html = html.replace(
         '"playlist_data_placeholder"',
