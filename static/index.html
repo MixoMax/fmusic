@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>fmusic</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+    
+    
+
     <link rel="stylesheet" href="/static/index.css">
 </head>
 <body>
@@ -16,8 +23,37 @@
             </div>
 
             <div id="Search">
-                <input type="text" placeholder="Search">
-                <button type="submit">Search</button>
+
+                <div class="vbox">
+
+                    <div class="hbox">
+                        <input id="SearchBar" placeholder="Search"></input>
+                        <button id="SearchButton" onclick="search()">Search</button>
+                    </div>
+
+                    <div class="hbox">
+                        
+                        <select id="SearchCategory" placeholder="Search Category" onchange="updateSearchValues()">
+                            <option value="name">Name</option>
+                            <option value="artist">Artist</option>
+                            <option value="album">Album</option>
+                            <option value="genre">Genre</option>
+                        </select>
+
+                        <select id="SearchValues" placeholder="Value">
+                            <option value="1">Song 1</option>
+                            <option value="2">Song 2</option>
+                            <option value="3">Song 3</option>
+                        </select>
+
+                        <button id="AddConstraintButton" onclick="addConstraint()">Add Constraint</button>
+                    
+                    </div>
+
+                </div>
+
+
+
             </div>
         </header>
 
@@ -31,14 +67,7 @@
                 </ul>
                 
             </div>
-            <div id="PlaylistOrSearchResults">
-                <!--Playlist or Search Results-->
-
-                <ul>
-                    <li>Song 1</li>
-                    <li>Song 2</li>
-                    <li>Song 3</li>
-                </ul>
+            <div class="vbox" id="SearchResults">
             </div>
         </div>
 
@@ -63,6 +92,8 @@
         </div>
 
     </div>
+
+    <script src="/static/index.js"></script>
     
 </body>
 </html>

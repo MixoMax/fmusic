@@ -22,7 +22,7 @@ import time
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 
-MUSIC_DIR = "D:/Music"
+MUSIC_DIR = "/home/linus/Music"
 
 
 def list_str_to_list(list_str: str) -> list:
@@ -153,6 +153,11 @@ class DataBase:
         self.cursor.execute(cmd)
         
         self.conn.commit()
+    
+    def change_db(self, file_path: str):
+        self.conn.close()
+        self.file_path = file_path
+        self.__init__()
         
     
     def get_num_entries(self, table_name: str = "songs") -> int:
@@ -160,7 +165,7 @@ class DataBase:
         self.cursor.execute(cmd)
         return self.cursor.fetchone()[0]
 
-    def get_songs(self, mode: str = "AND", limit: int = 10, **restraints) -> list[SongEntry]:
+    def get_songs(self, mode: str = "AND", limit: int = 10, verbose: bool = False, **restraints) -> list[SongEntry]:
         options = ["id", "bpm", "length", "kbps", "genre", "artist", "album", "name"]
         mode_options = ["AND", "OR"]
         
@@ -191,18 +196,24 @@ class DataBase:
             elif mode == "OR":
                 songs_out += new_songs
             
-            print(key, prev_num, " -> ", len(all_songs))
+            if verbose:
+                print(key, prev_num, " -> ", len(all_songs))
             
             
         if limit is not None:
             songs_out = list(set(songs_out))[:limit]
         else:
-            print("limit is None")
+            if verbose:
+                print("limit is None")
             songs_out = list(set(songs_out))
         
         return songs_out
     
     def get_song_by_id(self, song_id: int) -> SongEntry:
+        if song_id < 0:
+            #negative song_id means count from the end
+            song_id = self.get_num_entries() + song_id + 1
+                    
         cmd = F"SELECT * FROM songs WHERE id={song_id}"
         self.cursor.execute(cmd)
         data = self.cursor.fetchone()

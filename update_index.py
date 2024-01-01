@@ -1,10 +1,7 @@
-import tensorflow as tf
-import tensorflow_hub as tf_hub
 import numpy as np
 import librosa
 
-from qdrant_client import QdrantClient
-from qdrant_client.http.models import Distance, VectorParams, PointStruct
+
 
 import fmusic_core as fcore
 
@@ -42,7 +39,27 @@ def add_song_to_index(song_path):
         return False, song
 
 
+def setup_vector_db():
+    import tensorflow as tf #noqa
+    import tensorflow_hub as tf_hub #noqa
+    
+    global client, model, vector_config
+    
+    
+    from qdrant_client import QdrantClient #noqa
+    from qdrant_client.http.models import Distance, VectorParams, PointStruct #noqa
+    
+    host = "127.0.0.1:6333"
+    client = QdrantClient(host=host) #noqa
+    
+    vector_config = VectorParams(size=521, distance=Distance.COSINE) #noqa
+    
+    model_url = "https://tfhub.dev/google/yamnet/1"
+    model = tf_hub.load(model_url) #noqa
+
 def get_embeddings(file_path: str) -> list[float]:
+    global client, model, vector_config
+    
     audio, sr = librosa.load(file_path, sr=None, mono=True)
     embeddings = model(audio)
     #embeddings: [tensorflow.python.framework.ops.EagerTensor, tensorflow.python.framework.ops.EagerTensor, tensorflow.python.framework.ops.EagerTensor]
@@ -58,6 +75,8 @@ def get_embeddings(file_path: str) -> list[float]:
     return embeddings
 
 def add_song_to_vector_db(song: fcore.SongEntry):
+    global client, model, vector_config
+    
     embeddings = get_embeddings(song.abs_path)
     
     for vector in embeddings:
@@ -68,6 +87,8 @@ def add_song_to_vector_db(song: fcore.SongEntry):
         )
 
 def song_is_in_vector_db(song: fcore.SongEntry):
+    global client, model, vector_config
+    
     idx = song.id
     
     res = client.retrieve(
@@ -78,7 +99,7 @@ def song_is_in_vector_db(song: fcore.SongEntry):
     return len(res) > 0
         
 
-def update_index():
+def update_index(use_vector_db=True):
     
     
     print("(0/2) counting songs to index")
@@ -111,8 +132,12 @@ def update_index():
     print(f"Added {new_songs} new songs")
     
     
+    if use_vector_db == False:
+        return 0
     
+    global client, model, vector_config
     
+
     print("(2/2) Adding songs to vector database for similarity search")
     
     
@@ -130,12 +155,10 @@ def update_index():
     
 
 if __name__ == "__main__":
-    host = "192.168.178.68:6333"
-    client = QdrantClient(host=host)
     
-    vector_config = VectorParams(size=521, distance=Distance.COSINE)
-    
-    model_url = "https://tfhub.dev/google/yamnet/1"
-    model = tf_hub.load(model_url)
-    
-    update_index()
+    use_vector_db = input("Use vector database? (y/n): ")
+    if use_vector_db == "y":
+        setup_vector_db()
+        update_index()
+    else:
+        update_index(False)

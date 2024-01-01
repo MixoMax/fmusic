@@ -3,11 +3,11 @@ from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.requests import Request
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
+from pydantic import BaseModel
 
 import fmusic_core as fcore
 
 import os
-import random
 import datetime
 
 db = fcore.DataBase()
@@ -25,14 +25,12 @@ app.add_middleware(
 MUSIC_DIR = fcore.MUSIC_DIR
 
 
-#React Frontend
-
+#Frontend
 
 @app.get("/")
 async def serve_index():
     return FileResponse("./static/index.html")
-    
-    
+
 
 
 
@@ -50,6 +48,18 @@ async def serve_favicon():
 
 
 #API
+
+class SearchParameters(BaseModel):
+    limit: int = 10
+    mode: str = "AND"
+    bpm: int | list[int] = None
+    length: int | list[int] = None
+    kbps: int | list[int] = None
+    genre: str | list[str] = None
+    artist: str | list[str] = None
+    album: str | list[str] = None
+    name: str | list[str] = None
+
 
 @app.get("/api/search")
 def search(**params):
@@ -84,6 +94,209 @@ def search(**params):
     songs = db.get_songs(**new_params, limit=limit, mode=mode)
     print(len(songs))
     return JSONResponse([song.to_json() for song in songs])
+
+
+@app.post("/api/search_new")
+async def search_new(params: SearchParameters):
+    #param options:
+    #limit: int -> How many songs to return
+    #mode: str (AND or OR) -> How to combine the search parameters
+    
+    #bpm: int | list[int]
+    # if int: return songs with bpm == int
+    # if list[int]: 
+    # if len(list) == 2: return songs with bpm between list[0] and list[1]
+    # if len(list) > 2: return songs with bpm in list
+    
+    #length: int | list[int]
+    # Same as bpm
+    
+    #kbps: int | list[int]
+    # Same as bpm
+    
+    #genre: str | list[str]
+    # if str: return songs with genre == str
+    # if list[str]: return songs with genre in list
+    
+    #artist: str | list[str]
+    # Same as genre
+    
+    #album: str | list[str]
+    # Same as genre
+    
+    #name: str | list[str]
+    # Same as genre
+    
+    #return a list of SongEntry.to_json()
+    
+    
+    songs = db.get_all_songs()
+    
+    songs_out = set()
+    
+    print(params)
+    
+    
+    if params.mode == "OR":
+        
+        if type(params.bpm) == int:
+            for song in songs:
+                if song.bpm == params.bpm:
+                    songs_out.add(song)
+        else:
+            if len(params.bpm) == 2:
+                for song in songs:
+                    if song.bpm >= params.bpm[0] and song.bpm <= params.bpm[1]:
+                        songs_out.add(song)
+            else:
+                for song in songs:
+                    if song.bpm in params.bpm:
+                        songs_out.add(song)
+        
+        if type(params.length) == int:
+            for song in songs:
+                if song.length == params.length:
+                    songs_out.add(song)
+        else:
+            if len(params.length) == 2:
+                for song in songs:
+                    if song.length >= params.length[0] and song.length <= params.length[1]:
+                        songs_out.add(song)
+            else:
+                for song in songs:
+                    if song.length in params.length:
+                        songs_out.add(song)
+        
+        if type(params.kbps) == int:
+            for song in songs:
+                if song.kbps == params.kbps:
+                    songs_out.add(song)
+        else:
+            if len(params.kbps) == 2:
+                for song in songs:
+                    if song.kbps >= params.kbps[0] and song.kbps <= params.kbps[1]:
+                        songs_out.add(song)
+            else:
+                for song in songs:
+                    if song.kbps in params.kbps:
+                        songs_out.add(song)
+        
+        if type(params.genre) == str:
+            for song in songs:
+                if song.genre == params.genre:
+                    songs_out.add(song)
+        else:
+            for song in songs:
+                if song.genre in params.genre:
+                    songs_out.add(song)
+        
+        if type(params.artist) == str:
+            for song in songs:
+                if song.artist == params.artist:
+                    songs_out.add(song)
+        else:
+            for song in songs:
+                if song.artist in params.artist:
+                    songs_out.add(song)
+        
+        if type(params.album) == str:
+            for song in songs:
+                if song.album == params.album:
+                    songs_out.add(song)
+        else:
+            for song in songs:
+                if song.album in params.album:
+                    songs_out.add(song)
+        
+        if type(params.name) == str:
+            for song in songs:
+                if song.name == params.name:
+                    songs_out.add(song)
+        else:
+            for song in songs:
+                if song.name in params.name:
+                    songs_out.add(song)
+        
+    elif params.mode == "AND":
+            for song in songs:
+                
+                if params.bpm != None:
+                    if type(params.bpm) == int:
+                        if song.bpm != params.bpm:
+                            continue
+                    else:
+                        if len(params.bpm) == 2:
+                            if song.bpm < params.bpm[0] or song.bpm > params.bpm[1]:
+                                continue
+                        else:
+                            if song.bpm not in params.bpm:
+                                continue
+                
+                if params.length != None:
+                    if type(params.length) == int:
+                        if song.length != params.length:
+                            continue
+                    else:
+                        if len(params.length) == 2:
+                            if song.length < params.length[0] or song.length > params.length[1]:
+                                continue
+                        else:
+                            if song.length not in params.length:
+                                continue
+                
+                if params.kbps != None:
+                    if type(params.kbps) == int:
+                        if song.kbps != params.kbps:
+                            continue
+                    else:
+                        if len(params.kbps) == 2:
+                            if song.kbps < params.kbps[0] or song.kbps > params.kbps[1]:
+                                continue
+                        else:
+                            if song.kbps not in params.kbps:
+                                continue
+                
+                if params.genre != None:
+                    if type(params.genre) == str:
+                        if song.genre != params.genre:
+                            continue
+                    else:
+                        if song.genre not in params.genre:
+                            continue
+                
+                if params.artist != None:
+                    if type(params.artist) == str:
+                        if song.artist != params.artist:
+                            continue
+                    else:
+                        if song.artist not in params.artist:
+                            continue
+                
+                if params.album != None:
+                    if type(params.album) == str:
+                        if song.album != params.album:
+                            continue
+                    else:
+                        if song.album not in params.album:
+                            continue
+                
+                if params.name != None:
+                    if type(params.name) == str:
+                        if song.name != params.name:
+                            continue
+                    else:
+                        if song.name not in params.name:
+                            continue
+                
+                #none of the continue statements were executed
+                #so all parameters match
+                songs_out.add(song)
+    
+    
+    return JSONResponse([song.to_json() for song in songs_out])
+    
+    
+
 
 
 @app.get("/api/full_search")
@@ -213,44 +426,47 @@ def get_num_songs():
     return JSONResponse({"num_songs": db.get_num_entries()})
 
 
-@app.get("/api/get_options")
-def get_options_for_columns(column_name: str):
-    #return a set of all values for a column
-    #except for id, abs_path, name and album_art
-    if column_name in ["id", "abs_path", "name", "album_art"]:
-        return JSONResponse({"options": []})
-    
-    #other colums:
-    #bpm, length, kbps, genre, artist, album
-    
-    options = set()
-    songs = db.get_all_songs()
-    
-    for song in songs:
-        options.add(song.__dict__[column_name])
-    
-    return JSONResponse({"options": list(options)})
 
-@app.get("/api/get_options_new")
-def get_options_for_columns_new(column_name: str):
-    #return a set of all values for a column
-    #except for id, abs_path, name and album_art
-    if column_name in ["id", "abs_path", "name", "album_art"]:
-        return JSONResponse({"options": []})
+
+
+@app.get("/api/options")
+def get_options(column_name: str = "column_name"):
+    # return all options for a column
+    # if column_name is None, return all options for column_name
     
+    if column_name in ["id", "abs_path", "album_art"]:
+        #return empty list because these columns are either all unique or blob
+        options = []
+
     #other colums:
-    #bpm, length, kbps, genre, artist, album
-    
-    options = set()
-    
-    max_id = db.get_num_entries()
-    
-    for i in range(0, max_id, 100):
-        songs = db.get_songs_by_id(i, 100, i+100)
+    #name, bpm, length, kbps, genre, artist, album
+    elif column_name == "column_name":
+        #return all column names
+        options = fcore.SongEntry(0, "", "", 0, 0, 0, "", "", "", "").__dict__.keys()
+        options = list(options)
+        
+        print(options)
+        
+        #remove id, abs_path and album_art
+        options.remove("id")
+        options.remove("abs_path")
+        options.remove("album_art")
+        
+        options = list(options)
+    else:
+        #return all options for column_name
+        options = set()
+        songs = db.get_all_songs()
+        
         for song in songs:
             options.add(song.__dict__[column_name])
+        
+        options = list(options)
     
-    return JSONResponse({"options": list(options)})
+    return JSONResponse({"options": options})
+    
+
+
 
 @app.get("/api/get_option_frequency")
 def get_option_frequency(column_name: str):
