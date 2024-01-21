@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse, StreamingResponse
 from fastapi.requests import Request
 import uvicorn
 
@@ -8,6 +8,9 @@ import fmusic_core as fcore
 import os
 import random
 import datetime
+from tqdm import tqdm
+import zipfile
+import time
 
 db = fcore.DataBase()
 app = FastAPI()
@@ -465,7 +468,94 @@ def generate_sitemap():
     return JSONResponse({"success": True})
 
 
+last_dump_timestamp = 0
+
+@app.get("/api/generate_zip_dump")
+def generate_zip_dump() -> JSONResponse:
+    # Generate a zip dump of all songs
+    # package all songs into a zip file
+    
+    global var_dict
+    t_start = time.time()
+    
+    #check if a zip dump has been created in the last minute
+    if abs(time.time() - var_dict["zip_dump_timestamp"]) < 60:
+        return JSONResponse({
+            "success": False,
+            "error": "Too many requests!",
+            "message": "A zip dump has been created in the last minute. The next zip dump can be created in 60 seconds.",
+            "download_link": "/api/download/dump.zip",
+            "time": 0
+            },
+            status_code=429 #too many requests
+        )
+    else:
+        var_dict["zip_dump_timestamp"] = time.time()
+    
+    os.mkdir("./temp/zip_temp")
+    
+    songs = db.get_all_songs()
+    
+    for song in tqdm(songs):
+        file_ending = song.abs_path.split(".")[-1]
+        new_file_name = f"{song.id}.{file_ending}"
+        new_file_path = os.path.join("./temp/zip_temp", new_file_name)
+        
+        #copy over
+        with open(song.abs_path, "rb") as f:
+            audio = f.read()
+        
+        with open(new_file_path, "wb") as f:
+            f.write(audio)
+    
+    # put contents of ./temp/zip_temp into a zip file
+    zip_file_path = "./temp/dump.zip"
+    
+    
+    
+    with zipfile.ZipFile(zip_file_path, "w") as zip_file:
+        for file in tqdm(os.listdir("./temp/zip_temp")):
+            zip_file.write(os.path.join("./temp/zip_temp", file), file)
+    
+    # delete ./temp/zip_temp
+    for file in os.listdir("./temp/zip_temp"):
+        os.remove(os.path.join("./temp/zip_temp", file))
+    os.rmdir("./temp/zip_temp")
+    
+    t_end = time.time()
+    
+    if os.path.exists(zip_file_path):
+        return JSONResponse({
+            "success": True,
+            "error": "",
+            "message": "The zip file has been created.",
+            "download_link": "/api/download/dump.zip",
+            "time": t_end - t_start
+            })
+    else:
+        return JSONResponse({
+            "success": False,
+            "error": "Something went wrong! The zip file has not been created.",
+            "message": "The zip file has not been created.",
+            "download_link": "",
+            "time": t_end - t_start
+            })
+
+
+
+@app.get("/api/download/dump.zip")
+def download_zip_dump() -> FileResponse:
+    # Download the zip dump
+    
+    file_path = "./temp/dump.zip"
+    return FileResponse(file_path, filename="dump.zip")
+
 
 if __name__ == "__main__":
-    print("new version")
+    global var_dict
+    var_dict = {
+        "zip_dump_timestamp": 0
+    }
+    
+    
     uvicorn.run(app, host="0.0.0.0", port=8675)
