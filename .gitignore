@@ -4,3 +4,5 @@ music.db
 
 /temp/*
 *.pyc
+*.ipynb
+*.mp3
